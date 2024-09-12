@@ -1,72 +1,30 @@
-MMR Bot Wants
+TODO:
+    QUEUE
+        2) Ability to que for a 3v3 or 1v1 game mode inside of discord channels, 
+        as solo, as a 2 man team, and as a 3 man team [QUEUE]
 
-1) MMR System [CORE]
+        3) As players have qued, a dialogue box showing how many players are also in que [DISCORD]
 
-2) Ability to que for a 3v3 or 1v1 game mode inside of discord channels, 
-as solo, as a 2 man team, and as a 3 man team [QUEUE]
+        5) Global and Rank Based queues [CORE, QUEUE]
 
-3) As players have qued, a dialogue box showing how many players are also in que [DISCORD]
+        6) Ability to Create and Que as a pre-made team [QUEUE]
 
-4) Tiered MMR Distribution for ELO rated fights [CORE]
+        8) upon a full que, BOT will DM all involved players with a check in confirmation -
+        players have 5 minutes to check in to and join the match [DISCORD]
+
+        9) upon a full que, all qued and involved players in the match will receive a ping notification [QUEUE, DISCORD]
     
-S Rank
-A Rank
-B Rank
-C Rank
-D Rank
+    PROMOS
+        13) To Promote/ Demote, players must reach the MMR Demotion/ 
 
-5) Global and Rank Based queues [CORE, QUEUE]
+        14) Each RANK will have a placement ELO, and Promotion ELO, and a Demotion Elo
 
-6) Ability to Create and Que as a pre-made team [QUEUE]
 
-7) Live, updated leaderboards posted inside of discord channel [CORE, DISCORD]
-
-8) upon a full que, BOT will DM all involved players with a check in confirmation -
- players have 5 minutes to check in to and join the match [DISCORD]
-
-9) upon a full que, all qued and involved players in the match will receive a ping notification [QUEUE, DISCORD]
-
-10) upon a full que, bot will confirm the outlines of the match in a text message to all players [QUEUE, DISCORD]
-(Players named P1, P2, P3, etc)
-    
-Lobby Host picked at RANDOM
-Time Limit: 5 Minutes
-Member Rotation: Locked
-Access: Open
-Lobby Size: 6
-Map Selection: RANDOMIZED from MAP POOL (Bona Dea Dunes A, Contaminated City,
- Jorgen Refueling Base, Old Bertram Spaceport, Xylem, the Floating City)
-Alpha Team (p1, p6, p4) vs. Bravo Team (p3, p2, p5)
-LOBBY Host: <Bot Designated User>
-SERIES: <bo1, bo3, bo5>
-BOT will DM all involved players the randomly generated KW for the lobby
-
-11) Bot will automatically place everyone in C RANK upon entry
-
-12) Each RANK will have it's own hidden channel, only accessible to administrators, 
-moderators, and those within the rank itself
-
-13) To Promote/ Demote, players must reach the MMR Demotion/ 
 Promotion MMR threshhold to be promoted/ demoted to that rank, at which point the bot will
  automatically assign the proper role.
+STRETCH
+    7) Live, updated leaderboards posted inside of discord channel [CORE, DISCORD]
 
-14) Each RANK will have a placement ELO, and Promotion ELO, and a Demotion Elo
-    
-Placement ELO Is the MMR values that fall inside the upper and lower 
-MMR thresholds for a rating (D Rank at 450 - 700 MMR, for example)
-
-Promotion ELO is the necessary MMR value needed to 
-"promote" into the next higher rank (D rank to C Rank at 725 MMR, for example)
-(C Rank Placement MMR 700- 950, for example)
-
-Demotion ELO is the necessary MMR value needed to "demote" into the next lower rank 
-(C rank to D rank at 675 MMR, for example)
-
-15) Bot will obtain and track W/L statistics, Win Percentage, 
-as well as individual Victories and Losses against and with any participating member
-    
-Overall Wins/ Losses
-Overall Wins/ Losses with and against all other players in database
- 
-the actual numbers themselves for the MMR is to be determined
+    12) Each RANK will have it's own hidden channel, only accessible to administrators, 
+    moderators, and those within the rank itself
 
