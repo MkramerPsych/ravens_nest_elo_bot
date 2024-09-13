@@ -4,6 +4,8 @@ Designed by Ahasuerus for Armored Scrims Server
 '''
 from typing import Optional
 from datetime import datetime
+from rich.table import Table
+from rich.console import Console
 import random
 import string
 
@@ -58,7 +60,7 @@ class Player:
     losses: int
     wl_ratio: float = 0.0
 
-    def __init__(self, player_name: str, player_team: Optional[str], player_id: Optional[str] = None):
+    def __init__(self, player_name: str, player_team: Optional[str] = None, player_id: Optional[str] = None):
         '''
         Called when a new player is added to the database
 
@@ -71,7 +73,7 @@ class Player:
         self.player_id = player_id
         self.player_ELO = ELO_TO_RANK['C']['min']
         self.player_rank = 'C'
-        self.player_team = player_team
+        self.player_team = player_team 
         self.wins = 0
         self.losses = 0
         
@@ -111,13 +113,30 @@ class Player:
         pass
 
     def __str__(self):
-        return (f"ID: {self.player_id}, Name: {self.player_name}, ELO: {self.player_ELO}, Team Affiliation: {self.player_team or None}, "
-                f"Rank: {self.player_rank}, Wins: {self.wins}, Losses: {self.losses}, "
-                f"W/L Ratio: {self.wl_ratio:.2f}")
+        stats_table = Table(title=f"Stats for {self.player_name}")
+        stats_table.add_column("Field", justify="right", style="cyan", no_wrap=True)
+        stats_table.add_column("Value", style="magenta")
+
+        stats_table.add_row("Player Name", self.player_name)
+        stats_table.add_row("Player ID", str(self.player_id))
+        stats_table.add_row("Player ELO", str(self.player_ELO))
+        stats_table.add_row("Player Team", self.player_team if self.player_team else "N/A")
+        stats_table.add_row("Player Rank", self.player_rank)
+        stats_table.add_row("Wins", str(self.wins))
+        stats_table.add_row("Losses", str(self.losses))
+        stats_table.add_row("W/L Ratio", f"{self.wins / self.losses:.2f}" if self.losses > 0 else "N/A")
+        
+        # print the table to the console and capture the output
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(stats_table)
+        table_output = capture.get()
+
+        # Send the captured table output as a message
+        return f"```{table_output}```"
     
     def __repr__(self):
-        return (f"Player({self.player_id}, {self.player_name}, {self.player_ELO}, {self.player_team}, "
-                f"{self.player_rank}, {self.wins}, {self.losses}, {self.wl_ratio})")
+        return self.__str__()
     
 class players_db:
     '''
@@ -161,17 +180,45 @@ class players_db:
            
     def get_players(self, player_names: list[str]):
         return [player for player in self.players if player.player_name in player_names]
+    
+    def get_top_players(self, num_players: int):
+        sorted_players = sorted(self.players, key=lambda player: player.player_ELO, reverse=True)
+        return sorted_players[:num_players]
 
     def __str__(self):
         sorted_players = sorted(self.players, key=lambda player: player.player_ELO, reverse=True)
-        return '\n'.join([str(player) for player in sorted_players])
+        players_table = Table(title="Players Database")
+        players_table.add_column("Player Name", justify="left", style="cyan", no_wrap=True)
+        players_table.add_column("Player ELO", style="magenta")
+        players_table.add_column("Player Rank", style="green")
+        players_table.add_column("Player Team", style="yellow")
+        players_table.add_column("Wins", style="blue")
+        players_table.add_column("Losses", style="red")
+        players_table.add_column("W/L Ratio", style="white")
+
+        for player in sorted_players:
+            players_table.add_row(
+            player.player_name,
+            str(player.player_ELO),
+            player.player_rank,
+            player.player_team if player.player_team else "N/A",
+            str(player.wins),
+            str(player.losses),
+            f"{player.wins / player.losses:.2f}" if player.losses > 0 else "N/A"
+            )
+
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(players_table)
+        table_output = capture.get()
+
+        return f"```{table_output}```"
     
     def __len__(self):
         return len(self.players)
 
     def __repr__(self):
-        sorted_players = sorted(self.players, key=lambda player: player.player_ELO, reverse=True)
-        return '\n'.join([repr(player) for player in sorted_players])
+        return self.__str__()
 
 # 3S LOGIC
 class team:
@@ -179,7 +226,7 @@ class team:
     Class representing a team in the 3s database
     '''
     team_name: str
-    roster: list[str] # list of 3 player names
+    roster: list[Player] # list of 3 player names
     team_ELO: float
     team_rank: str
     wins: int
@@ -196,7 +243,7 @@ class team:
         returns: None
         '''
         self.team_name = team_name
-        self.roster = [name.player_name for name in roster]
+        self.roster = roster
         self.team_ELO = ELO_TO_RANK['C']['min']
         self.team_rank = 'C'
         self.wins = 0
@@ -232,15 +279,28 @@ class team:
             ValueError(f'Player {player.player_name} is not on the team')
 
     def __str__(self):
-        return (f"Name: {self.team_name}, ELO: {self.team_ELO}, "
-                f"Rank: {self.team_rank}, Wins: {self.wins}, Losses: {self.losses}, "
-                f"W/L Ratio: {self.wl_ratio:.2f}")
+        team_table = Table(title=f"Stats for Team {self.team_name}")
+        team_table.add_column("Field", justify="right", style="cyan", no_wrap=True)
+        team_table.add_column("Value", style="magenta")
+
+        team_table.add_row("Team Name", self.team_name)
+        team_table.add_row("Roster", ', '.join(player.player_name for player in self.roster))
+        team_table.add_row("Team ELO", str(self.team_ELO))
+        team_table.add_row("Team Rank", self.team_rank)
+        team_table.add_row("Wins", str(self.wins))
+        team_table.add_row("Losses", str(self.losses))
+        team_table.add_row("W/L Ratio", f"{self.wins / self.losses:.2f}" if self.losses > 0 else "N/A")
+
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(team_table)
+        table_output = capture.get()
+
+        return f"```{table_output}```"
     
     def __repr__(self):
-        return (f"Team({self.team_name}, roster: {self.roster}, ELO: {self.team_ELO}, "
-                f"Rank: {self.team_rank}, W: {self.wins}, L: {self.losses}, W/L: {self.wl_ratio})")
+        return self.__str__()
     
-
 class teams_db:
     '''
     Class representing the database of teams
@@ -264,17 +324,43 @@ class teams_db:
             if team.team_name == team_name:
                 return team
         return None
+    
+    def get_top_teams(self, num_teams: int):
+        sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
+        return sorted_teams[:num_teams]
 
     def __str__(self):
         sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
-        return '\n'.join([str(team) for team in sorted_teams])
+        teams_table = Table(title="Teams Database")
+        teams_table.add_column("Team Name", justify="left", style="cyan", no_wrap=True)
+        teams_table.add_column("Team ELO", style="magenta")
+        teams_table.add_column("Team Rank", style="green")
+        teams_table.add_column("Wins", style="blue")
+        teams_table.add_column("Losses", style="red")
+        teams_table.add_column("W/L Ratio", style="white")
+
+        for team in sorted_teams:
+            teams_table.add_row(
+            team.team_name,
+            str(team.team_ELO),
+            team.team_rank,
+            str(team.wins),
+            str(team.losses),
+            f"{team.wins / team.losses:.2f}" if team.losses > 0 else "N/A"
+            )
+
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(teams_table)
+        table_output = capture.get()
+
+        return f"```{table_output}```"
     
     def __len__(self):
         return len(self.teams)
 
     def __repr__(self):
-        sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
-        return '\n'.join([repr(team) for team in sorted_teams])
+        return self.__str__()
 
 
 # MATCH LOGIC
@@ -330,28 +416,26 @@ class match:
             print(f'Match results reported. WIN: {winner.team_name}, LOSS: {loser.team_name}')
 
     def __str__(self):
-        if self.match_type == '1v1':
-            participants = f"Player Alpha: {self.player_alpha.player_name}, Player Beta: {self.player_beta.player_name}"
-        elif self.match_type == '3v3':
-            participants = f"Team Alpha: {self.team_alpha.team_name}, Team Beta: {self.team_beta.team_name}"
-        else:
-            participants = "Unknown participants"
-        
-        return (f"Match ID: {self.match_id}, Type: {self.match_type}, Date: {self.match_date}, "
-                f"Status: {self.match_status}, Winner: {self.match_winner}, Loser: {self.match_loser}, "
-                f"Map: {self.match_map}, Keyword: {self.keyword}, {participants}")
+        match_table = Table(title=f"Match {self.match_id} Details")
+        match_table.add_column("Field", justify="right", style="cyan", no_wrap=True)
+        match_table.add_column("Value", style="magenta")
+
+        match_table.add_row("Match ID", str(self.match_id))
+        match_table.add_row("Match Type", self.match_type)
+        match_table.add_row("Match Date", str(self.match_date))
+        match_table.add_row("Match Status", self.match_status)
+        match_table.add_row("Winner", self.match_winner if self.match_winner else "N/A")
+        match_table.add_row("Loser", self.match_loser if self.match_loser else "N/A")
+
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(match_table)
+        table_output = capture.get()
+
+        return f"```{table_output}```"
     
     def __repr__(self):
-        if self.match_type == '1v1':
-            participants = f"Player Alpha: {self.player_alpha.player_name}, Player Beta: {self.player_beta.player_name}"
-        elif self.match_type == '3v3':
-            participants = f"Team Alpha: {self.team_alpha.team_name}, Team Beta: {self.team_beta.team_name}"
-        else:
-            participants = "Unknown participants"
-        
-        return (f"Match({self.match_id}, Type: {self.match_type}, Date: {self.match_date}, "
-                f"Status: {self.match_status}, Winner: {self.match_winner}, Loser: {self.match_loser}, "
-                f"Map: {self.match_map}, Keyword: {self.keyword}, {participants})")
+        return self.__str__()
 
 class match_db:
     '''
@@ -384,10 +468,31 @@ class match_db:
         return None
     
     def __str__(self):
-        return '\n'.join([str(match) for match in self.matches])
+        matches_table = Table(title="Matches Database")
+        matches_table.add_column("Match ID", justify="left", style="cyan", no_wrap=True)
+        matches_table.add_column("Match Type", style="magenta")
+        matches_table.add_column("Map", style="green")
+        matches_table.add_column("Winner", style="blue")
+        matches_table.add_column("Loser", style="red")
+
+        for match in self.matches:
+            matches_table.add_row(
+            str(match.match_id),
+            match.match_type,
+            match.match_map if match.match_map else "N/A",
+            match.match_winner if match.match_winner else "N/A",
+            match.match_loser if match.match_loser else "N/A"
+            )
+
+        console = Console(force_terminal=False)
+        with console.capture() as capture:
+            console.print(matches_table)
+        table_output = capture.get()
+
+        return f"```{table_output}```"
     
     def __len__(self):
         return len(self.matches)
 
     def __repr__(self):
-        return '\n'.join([repr(match) for match in self.matches])
+        return self.__str__()

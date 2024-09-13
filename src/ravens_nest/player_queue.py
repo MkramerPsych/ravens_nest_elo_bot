@@ -4,8 +4,8 @@ Designed by Ahasuerus for Armored Scrims Server
 
 '''
 from ravens_nest.elo_core import *
-
-
+from rich.table import Table
+from rich.console import Console
 
 class MatchQueue:
     queue_type = str # '1v1' or '3v3'
@@ -48,8 +48,8 @@ class MatchQueue:
             raise ValueError("Can only enqueue teams in 3v3 queue")
         else:
             party_id = team.team_name
-            for player in team.team_members: # append each player to the queue in a party as a team
-                self.players.append((player, False, party_id))
+            for player in team.roster: # append each player to the queue in a party as a team
+                self.players.append((player, rank_restriction, party_id))
 
 
     def dequeue_player(self, player: Player, rank_restriction: bool = False):
@@ -67,19 +67,46 @@ class MatchQueue:
             pass
         else: # check if there are enough players to make a 1s match
             pass
-
+        
+    def __len__(self):
+        return len(self.players)
+    
     def __str__(self):
-        players_str = "\n".join([
-            f"Player: {player.player_name} ({player.player_ELO}), Rank Restriction: {player.player_rank}+" if rank_restriction 
-            else f"Player: {player.player_name} ({player.player_ELO}), Rank Restriction: None" 
-            + (f", Party ID: {party_id}" if party_id is not None else "")
-            for player, rank_restriction, party_id in self.players
-        ])
-        return f"{self.queue_type} queue:\n{players_str}"
+        console = Console(force_terminal=False)
+        table = Table(title=f"{self.queue_type.upper()} Queue: {len(self)} players currently in queue")
+
+        if self.queue_type == '3v3':
+            table.add_column("Player Name", justify="left")
+            table.add_column("ELO", justify="right")
+            table.add_column("Team", justify="left")
+            table.add_column("Rank Restriction", justify="left")
+            table.add_column("Party ID", justify="right")
+
+            for player, rank_restriction, party_id in self.players:
+                table.add_row(
+                    player.player_name,
+                    str(player.player_ELO),
+                    player.player_team,
+                    f"{player.player_rank}+" if rank_restriction else "None",
+                    str(party_id)
+                )
+        elif self.queue_type == '1v1':
+            table.add_column("Player Name", justify="left")
+            table.add_column("ELO", justify="right")
+            table.add_column("Rank Restriction", justify="left")
+
+            for player, rank_restriction, _ in self.players:
+                table.add_row(
+                    player.player_name,
+                    str(player.player_ELO),
+                    f"{player.player_rank}+" if rank_restriction else "None"
+                )
+
+        with console.capture() as capture:
+            console.print(table)
+        table_output = capture.get()
+        return f"```{table_output}```"
     
     def __repr__(self) -> str:
         return self.__str__()
     
-# test functions #
-ones_queue = MatchQueue('1v1')
-threes_queue = MatchQueue('3v3')

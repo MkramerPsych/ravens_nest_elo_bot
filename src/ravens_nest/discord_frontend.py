@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from ravens_nest.elo_core import *
 from ravens_nest.player_queue import *
+from rich.table import Table
+from rich.console import Console
 
 # Download link for the bot - https://discord.com/oauth2/authorize?client_id=1283690474653220875 # 
 
@@ -146,6 +148,68 @@ async def teamstats(interaction: discord.Interaction, team_name: str):
         await interaction.response.send_message(f"Team {team_name} is not in the database.")
     print(f"Teamstats command used to view team {team_name}.")
 
+@tree.command(name="solo_leaderboard", description="Views the leaderboard for 1v1 matches.")
+async def solo_leaderboard(interaction: discord.Interaction):
+    '''
+    Views the leaderboard for 1v1 matches.
+    '''
+    leaderboard = player_registry.get_top_players(10) 
+    console = Console(force_terminal=False)
+    table = Table(title="1v1 Leaderboard")
+
+    table.add_column("Position", justify="center")
+    table.add_column("Player Name", justify="center")
+    table.add_column("ELO", justify="center")
+
+    for position, player in enumerate(leaderboard, start=1):
+        if position == 1:
+            medal = "🥇"
+        elif position == 2:
+            medal = "🥈"
+        elif position == 3:
+            medal = "🥉"
+        else:
+            medal = f"{position}"
+        table.add_row(medal, player.player_name, str(player.player_ELO))
+
+    with console.capture() as capture:
+            console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"```{table_output}```")
+    print(f"solo_leaderboard command used to view 1v1 leaderboard.")
+
+@tree.command(name="team_leaderboard", description="Views the leaderboard for 3v3 matches.")
+async def team_leaderboard(interaction: discord.Interaction):
+    '''
+    Views the leaderboard for 3v3 matches.
+    '''
+    leaderboard = teams_registry.get_top_teams(5)
+    console = Console(force_terminal=False)
+    table = Table(title="3v3 Leaderboard")
+
+    table.add_column("Position", justify="center")
+    table.add_column("Team Name", justify="center")
+    table.add_column("ELO", justify="center")
+
+    for position, team in enumerate(leaderboard, start=1):
+        if position == 1:
+            medal = "🥇"
+        elif position == 2:
+            medal = "🥈"
+        elif position == 3:
+            medal = "🥉"
+        else:
+            medal = f"{position}"
+        table.add_row(medal, team.team_name, str(team.team_ELO))
+
+    with console.capture() as capture:
+            console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"```{table_output}```")
+    print(f"team_leaderboard command used to view 3v3 leaderboard.")
+
 # QUEUE COMMANDS #
 @tree.command(name="solo_queue", description="Adds a player to a match queue.")
 async def solo_queue(interaction: discord.Interaction, player_name: str, match_type: str, rank_restriction: Optional[bool] = False):
@@ -183,12 +247,31 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
 #     else:
 #         pass
 
+#tree.command(name="queue_with_team", description="Adds a team to a match queue.")
+
+
 @tree.command(name="view_ones_queue", description="Views the 1v1 match queue.")
 async def view_ones_queue(interaction: discord.Interaction):
     '''
     Views the 1v1 match queue.
     '''
-    await interaction.response.send_message(f"{ones_queue}")
+    console = Console(force_terminal=False)
+    table = Table(title="1v1 Match Queue")
+
+    table.add_column("Player Name", justify="center")
+    table.add_column("Player ELO", justify="center")
+    table.add_column("Player Team", justify="center")
+    table.add_column("Rank Restriction", justify="center")
+    table.add_column("Party ID", justify="center")
+
+    for player, rank_restriction, party_id in ones_queue.players:
+        table.add_row(player.player_name, str(player.player_ELO), player.player_team or "None", f'{player.player_rank}+' if rank_restriction else "None", party_id or "None")
+
+    with console.capture() as capture:
+        console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
     print(f"view_ones_queue command used to view 1v1 match queue.")
 
 @tree.command(name="view_threes_queue", description="Views the 3v3 match queue.")
@@ -196,7 +279,23 @@ async def view_threes_queue(interaction: discord.Interaction):
     '''
     Views the 3v3 match queue.
     '''
-    await interaction.response.send_message(f"{threes_queue}")
+    console = Console(force_terminal=False)
+    table = Table(title="3v3 Match Queue")
+
+    table.add_column("Player Name", justify="center")
+    table.add_column("Player ELO", justify="center")
+    table.add_column("Player Team", justify="center")
+    table.add_column("Rank Restriction", justify="center")
+    table.add_column("Party ID", justify="center")
+
+    for player, rank_restriction, party_id in threes_queue.players:
+        table.add_row(player.player_name, str(player.player_ELO), player.player_team or "None", f'{player.player_rank}+' if rank_restriction else "None", party_id or "None")
+
+    with console.capture() as capture:
+        console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"{len(threes_queue)} Players are in queue for 3v3 matches\n```{table_output}```")
     print(f"view_threes_queue command used to view 3v3 match queue.")
 
 # MATCHING SLASH COMMANDS #
@@ -299,12 +398,15 @@ async def help(interaction: discord.Interaction):
     '''
     help_message = '''
     **Ravens Nest Bot Commands**
+    ***commands marked with (A) are admin-only commands***
     `/onboard_player [player_name] [player_team]` - Onboards a player to the database.
     `/onboard_team [team_name] [player1] [player2] [player3]` - Onboards a team to the database.
-    `/remove_player [player_name]` - Removes a player from the database.
-    `/remove_team [team_name]` - Removes a team from the database.
+    `/remove_player (A) [player_name]` - Removes a player from the database.
+    `/remove_team (A) [team_name]` - Removes a team from the database.
     `/playerstats [player_name]` - Views the stats of a player.
     `/teamstats [team_name]` - Views the stats of a team.
+    `/solo_leaderboard` - Views the leaderboard for 1v1 matches.
+    `/team_leaderboard` - Views the leaderboard for 3v3 matches.
     `/single_match_setup [player1] [player2]` - Creates a match between two players.
     `/team_match_setup [team1] [team2]` - Creates a match between two teams.
     `/match_results [match_id] [win] [lose]` - Records the results of a match.
@@ -312,7 +414,7 @@ async def help(interaction: discord.Interaction):
     `/solo_queue [player_name] [match_type] [rank_restriction]` - Adds a player to a match queue.
     `/view_ones_queue` - Views the 1v1 match queue.
     `/view_threes_queue` - Views the 3v3 match queue.
-    `/cancel_match [match_id]` - Cancels a match.
+    `/cancel_match (A) [match_id]` - Cancels a match.
     `/help` - Displays all commands available.
     '''
     await interaction.response.send_message(help_message)

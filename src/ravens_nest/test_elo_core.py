@@ -23,7 +23,7 @@ Neer_do_well = Player('Neer_do_well', 'team1')
 basterisk = Player('Basterisk', 'team1')
 
 
-# player_registry.add_players([hooli, kraydle, fish, ramenrook, risa, sabbath])
+player_registry.add_players([hooli, kraydle, fish, ramenrook, risa, sabbath])
 
 # add them to teams
 

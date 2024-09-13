@@ -5,6 +5,7 @@ description = "Add your description here"
 dependencies = [
     "discord-py>=2.4.0",
     "discord>=2.3.2",
+    "rich>=13.8.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
