@@ -23,3 +23,8 @@ FUTURE FEATURE IMP
         will need function for ladder reset
     Admin: certain functions on discord will need an admin password to avoid player interference with data
     DM support: bot will need to send DMs to players 
+
+QUESTIONS
+    do we let people queue for 1s and 3s at the same time, or should queueing for one take you out of the other?
+    do we want to track MMR for pickups / random teams, or only established teams?
+    
