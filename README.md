@@ -1,5 +1,5 @@
 # The Ravens Nest - A Discord Bot for Armored Core VI: Fires of Rubicon
-# Designed by Ahasuerus for the armored scrims server
+Designed by Ahasuerus for the armored scrims server - [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q8139A9P)
 
 The Ravens Nest 
 
