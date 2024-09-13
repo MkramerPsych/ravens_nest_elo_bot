@@ -57,7 +57,7 @@ async def onboard_player(interaction: discord.Interaction, player_name: str, pla
         await interaction.response.send_message(f"Player {player_name} is already in the database.")
     else:
         # Add the player to the database
-        new_player = Player(player_name, player_team)
+        new_player = Player(player_name, player_team, player_id = interaction.user.id)
         player_registry.add_player(new_player)
         if player_team:
             await interaction.response.send_message(f"Player {player_name} has been onboarded to team {player_team}. Welcome to the Ravens Nest.")
@@ -309,6 +309,11 @@ async def help(interaction: discord.Interaction):
     `/team_match_setup [team1] [team2]` - Creates a match between two teams.
     `/match_results [match_id] [win] [lose]` - Records the results of a match.
     `/match_summary [match_id]` - Views the status of a match.
+    `/solo_queue [player_name] [match_type] [rank_restriction]` - Adds a player to a match queue.
+    `/view_ones_queue` - Views the 1v1 match queue.
+    `/view_threes_queue` - Views the 3v3 match queue.
+    `/cancel_match [match_id]` - Cancels a match.
+    `/help` - Displays all commands available.
     '''
     await interaction.response.send_message(help_message)
     print(f"Help command used to display all available commands.")

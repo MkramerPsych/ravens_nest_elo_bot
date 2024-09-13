@@ -5,6 +5,8 @@ Designed by Ahasuerus for Armored Scrims Server
 '''
 from ravens_nest.elo_core import *
 
+
+
 class MatchQueue:
     queue_type = str # '1v1' or '3v3'
     players = list[(Player, bool, int)] # list of tuples of players, team names (if 3s), and whether they have rank restrictions, and party/team ID (if any)

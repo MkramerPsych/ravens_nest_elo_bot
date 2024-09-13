@@ -58,7 +58,7 @@ class Player:
     losses: int
     wl_ratio: float = 0.0
 
-    def __init__(self, player_name: str, player_team: Optional[str]):
+    def __init__(self, player_name: str, player_team: Optional[str], player_id: Optional[str] = None):
         '''
         Called when a new player is added to the database
 
@@ -68,7 +68,7 @@ class Player:
         returns: None
         '''
         self.player_name = player_name
-        self.player_id = hash(player_name)
+        self.player_id = player_id
         self.player_ELO = ELO_TO_RANK['C']['min']
         self.player_rank = 'C'
         self.player_team = player_team
