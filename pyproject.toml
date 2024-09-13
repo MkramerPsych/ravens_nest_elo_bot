@@ -20,6 +20,9 @@ dev-dependencies = [
     "ipython>=8.27.0",
 ]
 
+[tool.rye.scripts]
+ravens_nest_bot = "python src/ravens_nest/discord_frontend.py"
+
 [tool.hatch.metadata]
 allow-direct-references = true
 
