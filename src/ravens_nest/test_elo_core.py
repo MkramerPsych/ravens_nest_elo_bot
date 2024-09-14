@@ -5,9 +5,11 @@ Designed by Ahasuerus for Armored Scrims Server
 from ravens_nest.elo_core import *
 
 # testing #
-player_registry = players_db() # initialize the database
-teams_registry = teams_db() # initialize the database
-matches_db = match_db() # initialize the match database
+player_registry = players_db() # initialize the database for individual players
+teams_registry = teams_db() # initialize the database for registered teams
+random_teams_registry = teams_db() # initialize the database for non-registered teams
+matches_db = match_db() # initialize the match logging database
+
 
 # add some players
 hooli = Player('Hooli', 'Koolish')

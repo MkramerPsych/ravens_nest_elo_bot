@@ -8,14 +8,18 @@ from rich.table import Table
 from rich.console import Console
 import random
 import string
+import math
 
 # constants
+ELO_MAXIMUM = 2200 # the highest possible ELO
+ELO_MINIMUM = 100 # the lowest possible ELO
 ELO_TO_RANK = {
-    'D': {'min': 450, 'max': 700},
-    'C': {'min': 700, 'max': 950},
-    'B': {'min': 950, 'max': 1100},
-    'A': {'min': 1100, 'max': 1350},
-    'S': {'min': 1350, 'max': 1600}
+    'D': {'min': ELO_MINIMUM, 'max': 699},
+    'C': {'min': 700, 'max': 949},
+    'B': {'min': 950, 'max': 1249},
+    'A': {'min': 1250, 'max': 1499},
+    'S': {'min': 1500, 'max': 1699},
+    'SS': {'min': 1700, 'max': ELO_MAXIMUM},
 }
 
 APPROVED_1S_MAPS = ['Contaminated City A', 'Xylem, the Floating City', 
@@ -39,12 +43,42 @@ def get_rank_from_ELO(ELO: int):
     for rank, values in ELO_TO_RANK.items():
         if values['min'] <= ELO < values['max']:
             return rank
-        elif ELO >= ELO_TO_RANK['S']['max']:
+        elif ELO >= ELO_TO_RANK['SS']['min']:
             return f'S_{ELO}'
 
 def generate_keyword(length = 6):
     characters = string.ascii_letters + string.digits 
     return ''.join(random.choice(characters) for _ in range(length))
+
+def probability_of_victory(player_ELO: int, opponent_ELO: int):
+    '''
+    Calculate the probability of a player winning a match
+
+    :param player_ELO: The ELO value of the player
+    :param opponent_ELO: The ELO value of the opponent
+
+    returns: The probability of the player winning
+    '''
+    return 1.0 / (1 + math.pow(10, (player_ELO - opponent_ELO) / 400.0))
+
+def ELO_formula(player_ELO: int, opponent_ELO: int, result: int, ELO_k: int = 30, ELO_max: int = 2200, ELO_min: int = 100):
+    '''
+    Calculate the new ELO value for a player after a match
+
+    :param player_ELO: The current ELO value of the player
+    :param opponent_ELO: The current ELO value of the opponent
+    :param result: The result of the match (1 for win, 0 for loss)
+
+    returns: The new ELO value of the players
+    '''
+    prob_beta_victory = probability_of_victory(player_ELO, opponent_ELO)
+    prob_alpha_victory = probability_of_victory(opponent_ELO, player_ELO)
+    player_ELO = round(player_ELO + ELO_k * (result - prob_alpha_victory))
+    opponent_ELO = round(opponent_ELO + ELO_k * ((1 - result) - prob_beta_victory))
+    player_ELO = min(max(player_ELO, ELO_min), ELO_max) # ensure ELO is within bounds
+    opponent_ELO = min(max(opponent_ELO, ELO_min), ELO_max) # ensure ELO is within bounds
+    return player_ELO, opponent_ELO 
+
 
 # core logic
 class Player:
@@ -77,11 +111,17 @@ class Player:
         self.wins = 0
         self.losses = 0
         
-    def update_player_stats(self, wins: int, losses: int):
-        self.wins += wins
-        self.losses += losses
+    def update_player_stats(self, result: int):
+        '''
+        Update the player's W/L stats and rank after a match
+        
+        :param result: The result of the match (1 for win, 0 for loss)
+        '''
+        if result == 1:
+            self.wins += 1
+        else:
+            self.losses += 1
         self.update_WinLoss()  # Recalculate the W/L ratio
-        self.player_ELO += self.update_player_ELO(wins, losses)
         self.player_rank = get_rank_from_ELO(self.player_ELO)
 
     def update_WinLoss(self):
@@ -90,27 +130,6 @@ class Player:
             self.wl_ratio = self.wins / self.losses
         else:
             self.wl_ratio = float('inf')
-
-    def update_player_ELO(self, wins: int, losses: int):
-        '''
-        Kraydle and I need to discuss how we want to calculate ELO gains
-        and losses. This will either leave rank untouched or call one
-        of two subfunctions: promote() or demote()
-        '''
-        # TODO: adjust ELO based on wins and losses
-        return 10 * (wins - losses)
-        
-    def _promote(self):
-        '''
-        Called when a player is promoted to a higher rank
-        '''
-        pass
-
-    def _demote(self):
-        '''
-        Called when a player is demoted to a lower rank
-        '''
-        pass
 
     def __str__(self):
         stats_table = Table(title=f"Stats for {self.player_name}")
@@ -256,15 +275,13 @@ class team:
         else:
             self.wl_ratio = float('inf')
 
-    def update_team_stats(self, wins: int, losses: int):
-        self.wins += wins
-        self.team_ELO += self.update_team_ELO(wins, losses)
-        self.losses += losses
+    def update_team_stats(self, result: int):
+        if result == 1:
+            self.wins += 1
+        else:
+            self.losses += 1
         self.update_WinLoss()
-
-    def update_team_ELO(self, wins: int, losses: int):
-        # TODO: come back and add real ELO adjustment calculation
-        return 10 * (wins - losses)
+        self.team_rank = get_rank_from_ELO(self.team_ELO)
 
     def add_to_team(self, player: Player):
         if len(self.roster) < 3:
@@ -408,12 +425,14 @@ class match:
         self.match_status = 'completed'
         if self.match_type == '1v1':
             print(f'Match results reported. WIN: {winner.player_name}, LOSS: {loser.player_name}')
-            winner.update_player_stats(1, 0)
-            loser.update_player_stats(0, 1)
+            [winner.player_ELO, loser.player_ELO] = ELO_formula(winner.player_ELO, loser.player_ELO, 1)
+            winner.update_player_stats(1)
+            loser.update_player_stats(0)
         elif self.match_type == '3v3':
-            winner.update_team_stats(1, 0)
-            loser.update_team_stats(0, 1)
+            [winner.team_ELO, loser.team_ELO] = ELO_formula(winner.team_ELO, loser.team_ELO, 1)
             print(f'Match results reported. WIN: {winner.team_name}, LOSS: {loser.team_name}')
+            winner.update_team_stats(1)
+            loser.update_team_stats(0)
 
     def __str__(self):
         match_table = Table(title=f"Match {self.match_id} Details")

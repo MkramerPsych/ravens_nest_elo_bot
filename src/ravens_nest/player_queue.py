@@ -7,8 +7,22 @@ from ravens_nest.elo_core import *
 from rich.table import Table
 from rich.console import Console
 
+#def get_valid_match_from_queue(queue: MatchQueue):
+    # if a player is at ELO 700 (C), they can only match
+    # assume 50 person queue
+    # compute every combination of 3 player teams and get their average ELO
+    # (modify for party queue by grouping by party ID, calculating ELO for the party as a weighted average of party members)
+    # order the resulting teams by the spread of their ELO amongst the roster (descending)
+    # for the smallest spread team, iterate across remaining teams and find the smallest spread team that is within a
+    # given ELO difference of the first team
+        # if true:
+            # make those two teams a match
+        # if false:
+            # increment the elo differerence between teams and try again
+
+
 class MatchQueue:
-    queue_type = str # '1v1' or '3v3'
+    queue_type = str # '1v1', '3v3 flex', '3v3 registered' 
     players = list[(Player, bool, int)] # list of tuples of players, team names (if 3s), and whether they have rank restrictions, and party/team ID (if any)
     
     def __init__(self, queue_type):
