@@ -44,7 +44,7 @@ def get_rank_from_ELO(ELO: int):
         if values['min'] <= ELO < values['max']:
             return rank
         elif ELO >= ELO_TO_RANK['SS']['min']:
-            return f'S_{ELO}'
+            return f'SS_{ELO}'
 
 def generate_keyword(length = 6):
     characters = string.ascii_letters + string.digits 
@@ -87,12 +87,17 @@ class Player:
     '''
     player_id: int
     player_name: str
-    player_ELO: float
-    player_rank: str
+    player_singles_ELO: float
+    player_teams_ELO: float
+    player_singles_rank: str
+    player_teams_rank: str
     player_team: str
-    wins: int
-    losses: int
-    wl_ratio: float = 0.0
+    singles_wins: int
+    singles_losses: int
+    teams_wins: int
+    teams_losses: int
+    singles_wl_ratio: float = 0.0
+    teams_wl_ratio: float = 0.0
 
     def __init__(self, player_name: str, player_team: Optional[str] = None, player_id: Optional[str] = None):
         '''
@@ -105,31 +110,53 @@ class Player:
         '''
         self.player_name = player_name
         self.player_id = player_id
-        self.player_ELO = ELO_TO_RANK['C']['min']
-        self.player_rank = 'C'
+        self.player_singles_ELO = ELO_TO_RANK['C']['min']
+        self.player_teams_ELO = ELO_TO_RANK['C']['min']
+        self.player_singles_rank = 'C'
+        self.player_teams_rank = 'C'
         self.player_team = player_team 
-        self.wins = 0
-        self.losses = 0
+        self.singles_wins = 0
+        self.singles_losses = 0
+        self.teams_wins = 0
+        self.teams_losses = 0
         
-    def update_player_stats(self, result: int):
+    def update_player_stats(self, result: int, match_type: str):
         '''
         Update the player's W/L stats and rank after a match
         
         :param result: The result of the match (1 for win, 0 for loss)
         '''
         if result == 1:
-            self.wins += 1
+            if match_type == '1v1':
+                self.singles_wins += 1
+            elif match_type == '3v3 flex':
+                self.teams_wins += 1
+            else: # match_type of '3v3 reg'
+                teams_db.get_team(self.player_team).wins += 1
+    
         else:
-            self.losses += 1
+            if match_type == '1v1':
+                self.singles_losses += 1
+            elif match_type == '3v3 flex':
+                self.teams_losses += 1
+            else: # match_type of '3v3 reg'
+                teams_db.get_team(self.player_team).losses += 1
+
         self.update_WinLoss()  # Recalculate the W/L ratio
-        self.player_rank = get_rank_from_ELO(self.player_ELO)
+        self.player_singles_rank = get_rank_from_ELO(self.player_singles_ELO)
+        self.player_teams_rank = get_rank_from_ELO(self.player_teams_ELO)
 
     def update_WinLoss(self):
         # Calculate the W/L ratio if losses are greater than 0
-        if self.losses > 0:
-            self.wl_ratio = self.wins / self.losses
+        if self.singles_losses > 0:
+            self.singles_wl_ratio = self.singles_wins / self.singles_losses
         else:
-            self.wl_ratio = float('inf')
+            self.singles_wl_ratio = float('inf')
+
+        if self.teams_losses > 0:
+            self.teams_wl_ratio = self.teams_wins / self.teams_losses
+        else:
+            self.teams_wl_ratio = float('inf')
 
     def __str__(self):
         stats_table = Table(title=f"Stats for {self.player_name}")
@@ -138,13 +165,18 @@ class Player:
 
         stats_table.add_row("Player Name", self.player_name)
         stats_table.add_row("Player ID", str(self.player_id))
-        stats_table.add_row("Player ELO", str(self.player_ELO))
+        stats_table.add_row("1v1s ELO", str(self.player_singles_ELO))
+        stats_table.add_row("1v1s Rank", self.player_singles_rank)
         stats_table.add_row("Player Team", self.player_team if self.player_team else "N/A")
-        stats_table.add_row("Player Rank", self.player_rank)
-        stats_table.add_row("Wins", str(self.wins))
-        stats_table.add_row("Losses", str(self.losses))
-        stats_table.add_row("W/L Ratio", f"{self.wins / self.losses:.2f}" if self.losses > 0 else "N/A")
-        
+        stats_table.add_row("3v3s ELO", str(self.player_teams_ELO))
+        stats_table.add_row("3v3s Rank", self.player_teams_rank)
+        stats_table.add_row("1v1s Wins", str(self.singles_wins))
+        stats_table.add_row("1v1s Losses", str(self.singles_losses))
+        stats_table.add_row("1v1s W/L Ratio", f"{self.singles_wins / self.singles_losses:.2f}" if self.singles_losses > 0 else "N/A")
+        stats_table.add_row("3v3s Wins", str(self.teams_wins))
+        stats_table.add_row("3v3s Losses", str(self.teams_losses))
+        stats_table.add_row("3v3s W/L Ratio", f"{self.teams_wins / self.teams_losses:.2f}" if self.teams_losses > 0 else "N/A")
+
         # print the table to the console and capture the output
         console = Console(force_terminal=False)
         with console.capture() as capture:
@@ -200,30 +232,44 @@ class players_db:
     def get_players(self, player_names: list[str]):
         return [player for player in self.players if player.player_name in player_names]
     
-    def get_top_players(self, num_players: int):
-        sorted_players = sorted(self.players, key=lambda player: player.player_ELO, reverse=True)
+    def get_top_singles_players(self, num_players: int):
+        sorted_players = sorted(self.players, key=lambda player: player.player_singles_ELO, reverse=True)
+        return sorted_players[:num_players]
+    
+    def get_top_teams_players(self, num_players: int):
+        sorted_players = sorted(self.players, key=lambda player: player.player_teams_ELO, reverse=True)
         return sorted_players[:num_players]
 
     def __str__(self):
-        sorted_players = sorted(self.players, key=lambda player: player.player_ELO, reverse=True)
+        sorted_players = sorted(self.players, key=lambda player: player.player_singles_ELO, reverse=True)
         players_table = Table(title="Players Database")
         players_table.add_column("Player Name", justify="left", style="cyan", no_wrap=True)
-        players_table.add_column("Player ELO", style="magenta")
-        players_table.add_column("Player Rank", style="green")
+        players_table.add_column("1v1s ELO", style="magenta")
+        players_table.add_column("1v1s Rank", style="green")
+        players_table.add_column("3v3s ELO", style="magenta")
+        players_table.add_column("3v3s Rank", style="green")
         players_table.add_column("Player Team", style="yellow")
-        players_table.add_column("Wins", style="blue")
-        players_table.add_column("Losses", style="red")
-        players_table.add_column("W/L Ratio", style="white")
+        players_table.add_column("1v1s Wins", style="blue")
+        players_table.add_column("1v1s Losses", style="red")
+        players_table.add_column("1v1s W/L Ratio", style="white")
+        players_table.add_column("3v3s Wins", style="blue")
+        players_table.add_column("3v3s Losses", style="red")
+        players_table.add_column("3v3s W/L Ratio", style="white")
 
         for player in sorted_players:
             players_table.add_row(
             player.player_name,
-            str(player.player_ELO),
-            player.player_rank,
+            str(player.player_singles_ELO),
+            player.player_singles_rank,
+            str(player.player_teams_ELO),
+            player.player_teams_rank,
             player.player_team if player.player_team else "N/A",
-            str(player.wins),
-            str(player.losses),
-            f"{player.wins / player.losses:.2f}" if player.losses > 0 else "N/A"
+            str(player.singles_wins),
+            str(player.singles_losses),
+            f"{player.singles_wins / player.singles_losses:.2f}" if player.singles_losses > 0 else "N/A",
+            str(player.teams_wins),
+            str(player.teams_losses),
+            f"{player.teams_wins / player.teams_losses:.2f}" if player.teams_losses > 0 else "N/A"
             )
 
         console = Console(force_terminal=False)
@@ -396,7 +442,7 @@ class match:
     keyword: str # keyword to be used for lobby
 
     def __init__(self, match_type: str, player_alpha: Optional[Player] = None, player_beta: Optional[Player] = None,
-                 team_alpha: Optional[team] = None, team_beta: Optional[team] = None):
+                 team_alpha: Optional[team|list[Player]] = None, team_beta: Optional[team|list[Player]] = None):
         self.match_date = datetime.now()
         self.match_id = abs(int(str(hash(self.match_date))[:8])) # god awful but works easy enough
         self.match_type = match_type
@@ -413,22 +459,39 @@ class match:
     def setup_match_parameters(self):
         if self.match_type == '1v1':
             self.match_map = random.choice(APPROVED_1S_MAPS)
-        elif self.match_type == '3v3':
+        elif self.match_type == '3v3 flex':
             self.match_map = random.choice(APPROVED_3S_MAPS)
+        elif self.match_type == '3v3 reg': # match_type == '3v3s reg'
+            self.match_map = random.choice(APPROVED_3S_MAPS)
+        else:
+            raise ValueError('Invalid match type, please use either 1v1, 3v3 flex, or 3v3 reg')
         self.match_status = 'pending'
         self.keyword = generate_keyword()
         print(f'Match setup complete. Use Map: {self.match_map}, Use Keyword: {self.keyword}')
 
-    def report_match_results(self, winner: team|Player, loser: team|Player):
-        self.match_winner = winner.player_name if self.match_type == '1v1' else winner.team_name
-        self.match_loser = loser.player_name if self.match_type == '1v1' else loser.team_name
+    def report_match_results(self, winner: team|Player|list[Player], loser: team|Player|list[Player]):
         self.match_status = 'completed'
+
+        if self.match_type == '3v3 flex':
+            self.match_winner = [player.player_name for player in winner]
+            self.match_loser = [player.player_name for player in loser]
+        else:
+            self.match_winner = winner.player_name if self.match_type != '3v3 reg' else winner.team_name
+            self.match_loser = loser.player_name if self.match_type != '3v3 reg' else loser.team_name
+        
         if self.match_type == '1v1':
             print(f'Match results reported. WIN: {winner.player_name}, LOSS: {loser.player_name}')
-            [winner.player_ELO, loser.player_ELO] = ELO_formula(winner.player_ELO, loser.player_ELO, 1)
-            winner.update_player_stats(1)
-            loser.update_player_stats(0)
-        elif self.match_type == '3v3':
+            [winner.player_singles_ELO, loser.player_singles_ELO] = ELO_formula(winner.player_singles_ELO, loser.player_singles_ELO, 1)
+            winner.update_player_stats(1, '1v1')
+            loser.update_player_stats(0, '1v1')
+        elif self.match_type == '3v3 flex':
+            print(f'Match results reported. WIN: {', '.join(player.player_name for player in winner)}, LOSS: {', '.join(player.player_name for player in loser)}')
+            for winner_player, loser_player in zip(winner, loser):
+                winner_player.player_teams_ELO, loser_player.player_teams_ELO = ELO_formula(winner_player.player_teams_ELO, loser_player.player_teams_ELO, 1)
+                winner_player.update_player_stats(1, '3v3 flex')
+                loser_player.update_player_stats(0, '3v3 flex')
+        else: # match_type == '3v3 reg'
+            print(f'Match results reported. WIN: {winner.team_name}, LOSS: {loser.team_name}')
             [winner.team_ELO, loser.team_ELO] = ELO_formula(winner.team_ELO, loser.team_ELO, 1)
             print(f'Match results reported. WIN: {winner.team_name}, LOSS: {loser.team_name}')
             winner.update_team_stats(1)
@@ -499,8 +562,8 @@ class match_db:
             str(match.match_id),
             match.match_type,
             match.match_map if match.match_map else "N/A",
-            match.match_winner if match.match_winner else "N/A",
-            match.match_loser if match.match_loser else "N/A"
+            str(match.match_winner) if match.match_winner else "N/A",
+            str(match.match_loser) if match.match_loser else "N/A"
             )
 
         console = Console(force_terminal=False)
