@@ -109,10 +109,70 @@ class MatchQueue:
         return None
     
     def _find_3v3_reg_match(self, base_ELO_diff: int, max_ELO_diff: int):
-        pass
+        while len(self.queued_teams) >= 2:
+            ELO_diff = base_ELO_diff
+            ELO_diff_increment = base_ELO_diff
+
+            for i, (team1, rank_restriction1, _) in enumerate(self.queued_teams):
+                while ELO_diff <= max_ELO_diff:
+                    for j, (team2, rank_restriction2, _) in enumerate(self.queued_teams[i+1:], start=i+1):
+                        if abs(team1.team_ELO - team2.team_ELO) <= ELO_diff:
+                            if (not rank_restriction1 or (rank_restriction1 and team2.team_rank <= team1.team_rank)) and \
+                               (not rank_restriction2 or (rank_restriction2 and team1.team_rank <= team2.team_rank)):
+                                print(f"Match found: {team1.team_name} ({team1.team_ELO}) and {team2.team_name} ({team2.team_ELO})")
+                                queued_match = match(team_alpha=team1, team_beta=team2, match_type='3v3 reg')
+                                self.queued_teams.pop(j)
+                                self.queued_teams.pop(i)
+                                return queued_match
+                    ELO_diff += ELO_diff_increment
+                ELO_diff = base_ELO_diff
+        print("No valid matches currently possible")
+        return None
 
     def _find_3v3_flex_match(self, base_ELO_diff: int, max_ELO_diff: int):
-        pass    
+        while len(self.queued_players) >= 6:
+            ELO_diff = base_ELO_diff
+            ELO_diff_increment = base_ELO_diff
+
+            # Create a list of all possible 3-player teams
+            possible_teams = []
+            for i, (player1, rank_restriction1, party_id1) in enumerate(self.queued_players):
+                for j, (player2, rank_restriction2, party_id2) in enumerate(self.queued_players[i+1:], start=i+1):
+                    for k, (player3, rank_restriction3, party_id3) in enumerate(self.queued_players[j+1:], start=j+1):
+                        # Ensure party members stay on the same team
+                        if party_id1 == party_id2 == party_id3 or (party_id1 is None and party_id2 is None and party_id3 is None):
+                            team = [player1, player2, player3]
+                            team_ELOs = [player.player_teams_ELO for player in team]
+                            team_mean_ELO = sum(team_ELOs) / 3
+                            team_range_ELO = max(team_ELOs) - min(team_ELOs)
+                            
+                            # Check rank restrictions
+                            if (not rank_restriction1 or all(player.player_teams_rank <= player1.player_teams_rank for player in team)) and \
+                               (not rank_restriction2 or all(player.player_teams_rank <= player2.player_teams_rank for player in team)) and \
+                               (not rank_restriction3 or all(player.player_teams_rank <= player3.player_teams_rank for player in team)):
+                                possible_teams.append((team, team_mean_ELO, team_range_ELO))
+
+            # Sort possible teams by descending ELO range
+            possible_teams.sort(key=lambda x: x[2], reverse=True)
+
+            # Try to find a match
+            for i, (team1, mean_ELO1, range_ELO1) in enumerate(possible_teams):
+                while ELO_diff <= max_ELO_diff:
+                    for j, (team2, mean_ELO2, range_ELO2) in enumerate(possible_teams[i+1:], start=i+1):
+                        # Ensure no overlapping players
+                        if not any(player in team1 for player in team2) and abs(mean_ELO1 - mean_ELO2) <= ELO_diff:
+                            team1_names = [player.player_name for player in team1]
+                            team2_names = [player.player_name for player in team2]
+                            print(f"Match found: {team1_names} and {team2_names}")
+                            queued_match = match(team_alpha=team1, team_beta=team2, match_type='3v3 flex')
+                            # Remove the players from the queue
+                            for player in team1 + team2:
+                                self.queued_players = [p for p in self.queued_players if p[0] != player]
+                            return queued_match
+                    ELO_diff += ELO_diff_increment
+                ELO_diff = base_ELO_diff  # Reset ELO_diff for the next team
+        print("No valid matches currently possible")
+        return None
 
     def get_valid_match_from_queue(self, base_ELO_diff: int = 10, max_ELO_diff: int = 250):
         '''
@@ -126,17 +186,6 @@ class MatchQueue:
             return self._find_3v3_reg_match(base_ELO_diff, max_ELO_diff)
         else:
             raise ValueError("Invalid match type: must be '1v1', '3v3 flex', or '3v3 reg'")
-        # if a player is at ELO 700 (C), they can only match
-        # assume 50 person queue
-        # compute every combination of 3 player teams and get their average ELO
-        # (modify for party queue by grouping by party ID, calculating ELO for the party as a weighted average of party members)
-        # order the resulting teams by the spread of their ELO amongst the roster (descending)
-        # for the smallest spread team, iterate across remaining teams and find the smallest spread team that is within a
-        # given ELO difference of the first team
-            # if true:
-                # make those two teams a match
-            # if false:
-                # increment the elo differerence between teams and try again
         
     def __len__(self):
         if self.queue_type == '3v3 reg':

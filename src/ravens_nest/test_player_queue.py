@@ -55,11 +55,11 @@ threes_flex_queue.enqueue_player(hooli)
 threes_flex_queue.enqueue_player(kraydle)
 threes_flex_queue.enqueue_player(fish)
 threes_flex_queue.enqueue_party([Prism, Hai_Yena, Cicada])
-team_alpha = [hooli, kraydle, fish]
-team_beta = [Prism, Hai_Yena, Cicada]
+threes_flex_queue.enqueue_player(ramenrook)
+threes_flex_queue.enqueue_player(risa)
+threes_flex_queue.enqueue_player(sabbath)
 
 # have a simulated 3v3 flex match between teams 
-test_3s_flex_match = match('3v3 flex', team_alpha, team_beta)
+test_3s_flex_match = threes_flex_queue.get_valid_match_from_queue()
 test_3s_flex_match.setup_match_parameters()
-test_3s_flex_match.report_match_results(team_alpha, team_beta)
-matches_db.add_match(test_3s_flex_match)
+test_3s_flex_match.report_match_results(test_3s_flex_match.team_alpha, test_3s_flex_match.team_beta)
