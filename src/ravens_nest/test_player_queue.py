@@ -8,9 +8,9 @@ teams_registry = teams_db() # initialize the database for registered teams
 matches_db = match_db() # initialize the match logging database
 
 # set up queues 
-ones_queue = MatchQueue('1v1')
-threes_reg_queue = MatchQueue('3v3 reg')
-threes_flex_queue = MatchQueue('3v3 flex')
+ones_queue = MatchQueue('1v1', player_registry, teams_registry)
+threes_reg_queue = MatchQueue('3v3 reg', player_registry, teams_registry)
+threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry)
 
 # add some players
 hooli = Player('Hooli', 'Koolish')
@@ -29,6 +29,10 @@ player_registry.add_players([hooli, kraydle, fish, ramenrook, risa, sabbath, Pri
 # add some teams
 koolish = team('Koolish', [hooli, kraydle, fish])
 rns = team('RnS', [ramenrook, risa, sabbath])
+
+# onboard them to the database
+teams_registry.add_team(koolish)
+teams_registry.add_team(rns)
 
 # test ones queue logic
 ones_queue.enqueue_player(hooli)

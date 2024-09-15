@@ -13,7 +13,6 @@ from rich.console import Console
 # Download link for the bot - https://discord.com/oauth2/authorize?client_id=1283690474653220875 # 
 
 # DISCORD BOT SETUP # 
-# TODO: adjust all functions to use the new syntax for 3v3 flex vs 3v3 reg vs 1v1 matches
 
 # Create a client instance with the necessary intents
 intents = discord.Intents.default()
@@ -29,9 +28,9 @@ player_registry = players_db() # initialize the database
 teams_registry = teams_db() # initialize the database
 matches_db = match_db() # initialize the match 
 
-ones_queue = MatchQueue('1v1')
-threes_flex_queue = MatchQueue('3v3 flex') 
-threes_reg_queue = MatchQueue('3v3 reg')
+ones_queue = MatchQueue('1v1', player_registry, teams_registry)
+threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry) 
+threes_reg_queue = MatchQueue('3v3 reg', player_registry, teams_registry)
 
 # DISCORD BOT EVENTS - MAIN FUNCTIONS # 
 

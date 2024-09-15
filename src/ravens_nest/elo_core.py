@@ -506,8 +506,12 @@ class match:
         match_table.add_row("Match Type", self.match_type)
         match_table.add_row("Match Date", str(self.match_date))
         match_table.add_row("Match Status", self.match_status)
-        match_table.add_row("Winner", self.match_winner if self.match_winner else "N/A")
-        match_table.add_row("Loser", self.match_loser if self.match_loser else "N/A")
+        if self.match_type == '3v3 flex':
+            match_table.add_row("Winner", ', '.join(self.match_winner) if self.match_winner else "N/A")
+            match_table.add_row("Loser", ', '.join(self.match_loser) if self.match_loser else "N/A")
+        else:
+            match_table.add_row("Winner", self.match_winner if self.match_winner else "N/A")
+            match_table.add_row("Loser", self.match_loser if self.match_loser else "N/A")
 
         console = Console(force_terminal=False)
         with console.capture() as capture:
