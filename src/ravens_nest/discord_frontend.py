@@ -14,7 +14,7 @@ from rich.console import Console
 
 # DISCORD BOT SETUP # 
 
-# TODO: ensure that all changes from base scripts are working in discord (9/15)
+# TODO: ensure that all changes from base scripts are working in discord (9/16)
 
 # Create a client instance with the necessary intents
 intents = discord.Intents.default()
