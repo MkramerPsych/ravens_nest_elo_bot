@@ -10,13 +10,13 @@ from ravens_nest.player_queue import *
 from rich.table import Table
 from rich.console import Console
 
-# Download link for the bot - https://discord.com/oauth2/authorize?client_id=1283690474653220875 # 
+# Download link for the bot - https://discord.com/oauth2/authorize?client_id=1283690474653220875 #
 
-# DISCORD BOT SETUP # 
-
-# TODO: ensure that all changes from base scripts are working in discord (9/16)
+# DISCORD BOT SETUP #
 
 # Create a client instance with the necessary intents
+version_num = '1.0.0'
+
 intents = discord.Intents.default()
 intents.presences = True
 intents.messages = True
@@ -28,15 +28,15 @@ tree = app_commands.CommandTree(client)
 # establish all databases and queues #
 player_registry = players_db() # initialize the database
 teams_registry = teams_db() # initialize the database
-matches_db = match_db() # initialize the match 
+matches_db = match_db() # initialize the match
 
 ones_queue = MatchQueue('1v1', player_registry, teams_registry)
-threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry) 
+threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry)
 threes_reg_queue = MatchQueue('3v3 reg', player_registry, teams_registry)
 
-# DISCORD BOT EVENTS - MAIN FUNCTIONS # 
+# DISCORD BOT EVENTS - MAIN FUNCTIONS #
 
-# Event triggered when the bot is ready # 
+# Event triggered when the bot is ready #
 @client.event
 async def on_ready():
     '''
@@ -49,7 +49,7 @@ async def on_ready():
     # Set the bot's status to online and set a custom activity
     activity = discord.Game(name="Managing the Ravens Nest")
     await client.change_presence(status=discord.Status.online, activity=activity)
-    print('Bot status set to online with custom activity.')
+    print(f'The Ravens Nest v{version_num} activated')
     print('Ready to receive commands.')
 
 # ONBOARDING COMMANDS #
@@ -77,16 +77,16 @@ async def onboard_team(interaction: discord.Interaction, team_name: str, player1
     '''
     Onboards a team to the database.
     '''
-    roster = [player_registry.get_player(player1), 
+    roster = [player_registry.get_player(player1),
               player_registry.get_player(player2),
               player_registry.get_player(player3)] # to avoid discord type complaining
-    
+
     if any(player is None for player in roster):
         missing_players = [player_name for player_name, player in zip([player1, player2, player3], roster) if player is None]
         await interaction.response.send_message(f"Player(s): [{', '.join(missing_players)}] is/are not in the database.")
         print(f"Onboard team command used to onboard team {team_name}, but player(s) {', '.join(missing_players)} is/are not in the database.")
         return
-    
+
     for player in roster: # assign team name to roster players
         player.player_team = team_name
 
@@ -101,10 +101,14 @@ async def onboard_team(interaction: discord.Interaction, team_name: str, player1
         print(f"Onboard team command used to onboard team {team_name}.")
 
 @tree.command(name="remove_player", description="Removes a player from the database.")
-async def remove_player(interaction: discord.Interaction, player_name: str):
+async def remove_player(interaction: discord.Interaction, admin_passwd: str, player_name: str):
     '''
     Removes a player from the database.
     '''
+    if admin_passwd != os.getenv('ADMIN_PASSWD'):
+        await interaction.response.send_message("Invalid admin password.")
+        print(f"Remove player command used with invalid admin password.")
+        return
     player = player_registry.get_player(player_name)
     if player:
         player_registry.remove_player(player.player_name)
@@ -115,13 +119,17 @@ async def remove_player(interaction: discord.Interaction, player_name: str):
         print(f"Remove player command used to remove player {player_name}, but player is not in the database.")
 
 @tree.command(name="remove_team", description="Removes a team from the database.")
-async def remove_team(interaction: discord.Interaction, team_name: str):
+async def remove_team(interaction: discord.Interaction, admin_passwd: str, team_name: str):
     '''
     Removes a team from the database.
     '''
+    if admin_passwd != os.getenv('ADMIN_PASSWD'):
+        await interaction.response.send_message("Invalid admin password.")
+        print(f"Remove team command used with invalid admin password.")
+        return
     team = teams_registry.get_team(team_name)
     if team:
-        teams_registry.remove_team(team)
+        teams_registry.remove_team(team.team_name)
         await interaction.response.send_message(f"Team {team_name} has been removed from the database.")
         print(f"Remove team command used to remove team {team_name}.")
     else:
@@ -138,7 +146,7 @@ async def playerstats(interaction: discord.Interaction, player_name: str):
         await interaction.response.send_message(f"{player}")
     else:
         await interaction.response.send_message(f"Player {player_name} is not in the database.")
-    print(f"Playerstats command used to view player {player_name}.") 
+    print(f"Playerstats command used to view player {player_name}.")
 
 @tree.command(name="teamstats", description="Views the stats of a team.")
 async def teamstats(interaction: discord.Interaction, team_name: str):
@@ -157,7 +165,7 @@ async def solo_leaderboard(interaction: discord.Interaction):
     '''
     Views the leaderboard for 1v1 matches.
     '''
-    leaderboard = player_registry.get_top_players(10) 
+    leaderboard = player_registry.get_top_singles_players(10)
     console = Console(force_terminal=False)
     table = Table(title="1v1 Leaderboard")
 
@@ -174,7 +182,7 @@ async def solo_leaderboard(interaction: discord.Interaction):
             medal = "🥉 "
         else:
             medal = f"{position}"
-        table.add_row(medal, player.player_name, str(player.player_ELO))
+        table.add_row(medal, player.player_name, str(player.player_singles_ELO))
 
     with console.capture() as capture:
             console.print(table)
@@ -183,8 +191,8 @@ async def solo_leaderboard(interaction: discord.Interaction):
     await interaction.response.send_message(f"```{table_output}```")
     print("solo_leaderboard command used to view 1v1 leaderboard.")
 
-@tree.command(name="team_leaderboard", description="Views the leaderboard for 3v3 matches.")
-async def team_leaderboard(interaction: discord.Interaction):
+@tree.command(name="reg_teams_leaderboard", description="Views the leaderboard for 3v3 matches.")
+async def reg_teams_leaderboard(interaction: discord.Interaction):
     '''
     Views the leaderboard for 3v3 matches.
     '''
@@ -212,7 +220,38 @@ async def team_leaderboard(interaction: discord.Interaction):
     table_output = capture.get()
 
     await interaction.response.send_message(f"```{table_output}```")
-    print("team_leaderboard command used to view 3v3 leaderboard.")
+    print("reg_teams_leaderboard command used to view 3v3 reg leaderboard.")
+
+@tree.command(name="flex_teams_leaderboard", description="Views the leaderboard for 3v3 flex match performance.")
+async def flex_teams_leaderboard(interaction: discord.Interaction):
+    '''
+    Views the leaderboard for 3v3 flex match performance.
+    '''
+    leaderboard = player_registry.get_top_teams_players(10)
+    console = Console(force_terminal=False)
+    table = Table(title="3v3 Flex Leaderboard")
+
+    table.add_column("Position", justify="center")
+    table.add_column("Player Name", justify="center")
+    table.add_column("ELO", justify="center")
+
+    for position, player in enumerate(leaderboard, start=1):
+        if position == 1:
+            medal = "🥇"
+        elif position == 2:
+            medal = "🥈"
+        elif position == 3:
+            medal = "🥉"
+        else:
+            medal = f"{position}"
+        table.add_row(medal, player.player_name, str(player.player_teams_ELO))
+
+    with console.capture() as capture:
+            console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"```{table_output}```")
+    print("flex_teams_leaderboard command used to view 3v3 flex leaderboard.")
 
 # QUEUE COMMANDS #
 @tree.command(name="solo_queue", description="Adds a player to a match queue.")
@@ -230,7 +269,7 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
                 print(f"solo_queue command used to add player {player_name} to the 1v1 match queue, but player is already in the 3v3 queue.")
-            
+
         elif match_type == '3v3':
             try:
                 threes_queue.enqueue_player(player, rank_restriction, party_id=None)
@@ -239,11 +278,11 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 3v3 queue.")
                 print(f"solo_queue command used to add player {player_name} to the 3v3 match queue, but player is already in the 1v1 queue.")
-        
+
         else:
             await interaction.response.send_message("match_type must be '1v1' or '3v3'.")
             print(f"solo_queue command used to add player {player_name} to the match queue, but match_type is not '1v1' or '3v3'.")
-    
+
     else:
         await interaction.response.send_message(f"Player {player_name} is not in the database.")
         print(f"solo_queue command used to add player {player_name} to match queue, but player is not in the database.")
@@ -345,7 +384,7 @@ async def team_match_setup(interaction: discord.Interaction, team1: str, team2: 
 
     if alpha_squad and beta_squad:
         # Create a match
-        new_match = match(match_type='3v3', team_alpha=alpha_squad, team_beta=beta_squad)
+        new_match = match(match_type='3v3 reg', team_alpha=alpha_squad, team_beta=beta_squad)
         new_match.setup_match_parameters()
         matches_db.add_match(new_match)
         await interaction.response.send_message(f'Match setup for match `{new_match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {new_match.match_map}, Use Keyword: {new_match.keyword}')
@@ -355,13 +394,17 @@ async def team_match_setup(interaction: discord.Interaction, team1: str, team2: 
         print(f"team_match_setup command used to create a match between {team1} and {team2}, but one or both teams are not in the database.")
 
 @tree.command(name="cancel_match", description="Cancels a match.")
-async def cancel_match(interaction: discord.Interaction, match_id: int):
+async def cancel_match(interaction: discord.Interaction, admin_passwd: str, match_id: int):
     '''
     Cancels a match.
     '''
-    match = matches_db.get_match(match_id)
-    if match:
-        matches_db.remove_match(match)
+    if admin_passwd != os.getenv('ADMIN_PASSWD'):
+        await interaction.response.send_message(f"Invalid password.")
+        print(f"cancel_match command used with invalid password.")
+        return
+    match_to_cancel = matches_db.get_match(match_id)
+    if match_to_cancel:
+        matches_db.remove_match(match_to_cancel.match_id)
         await interaction.response.send_message(f"Match {match_id} has been cancelled and will not affect statistics.")
         print(f"cancel_match command used to cancel match {match_id}.")
     else:
@@ -386,11 +429,13 @@ async def match_results(interaction: discord.Interaction, match_id: int, win: st
                 loser = player_registry.get_player(lose)
                 match.report_match_results(winner, loser)
                 await interaction.response.send_message(f"Match {match_id} results recorded. {winner.player_name} wins.")
-            else:
+            elif match.match_type == '3v3 reg':
                 winner = teams_registry.get_team(win)
                 loser = teams_registry.get_team(lose)
                 match.report_match_results(winner, loser)
                 await interaction.response.send_message(f"Match {match_id} results recorded. {winner.team_name} wins.")
+            else: # '3v3 flex'
+                pass
             print(f"match_results command used to record results of match {match_id}.")
 
 @tree.command(name="match_summary", description="Views the status of a match.")
@@ -421,14 +466,16 @@ async def help(interaction: discord.Interaction):
     `/playerstats [player_name]` - Views the stats of a player.
     `/teamstats [team_name]` - Views the stats of a team.
     `/solo_leaderboard` - Views the leaderboard for 1v1 matches.
-    `/team_leaderboard` - Views the leaderboard for 3v3 matches.
+    `/reg_teams_leaderboard` - Views the leaderboard for 3v3 regulation matches.
+    `/flex_teams_leaderboard` - Views the leaderboard for 3v3 flex matches.
     `/single_match_setup [player1] [player2]` - Creates a match between two players.
     `/team_match_setup [team1] [team2]` - Creates a match between two teams.
     `/match_results [match_id] [win] [lose]` - Records the results of a match.
     `/match_summary [match_id]` - Views the status of a match.
     `/solo_queue [player_name] [match_type] [rank_restriction]` - Adds a player to a match queue.
     `/view_ones_queue` - Views the 1v1 match queue.
-    `/view_threes_queue` - Views the 3v3 match queue.
+    `/view_reg_queue` - Views the 3v3 reg match queue.
+    `/view_flex_queue` - Views the 3v3 flex match queue.
     `/cancel_match (A) [match_id]` - Cancels a match.
     `/help` - Displays all commands available.
     '''
@@ -436,7 +483,7 @@ async def help(interaction: discord.Interaction):
     print("Help command used to display all available commands.")
 
 
-# Start the bot # 
+# Start the bot #
 bot_token = os.environ.get('DISCORD_BOT_TOKEN')
 
 if bot_token:
@@ -444,4 +491,3 @@ if bot_token:
     client.run(bot_token) # activate the Ravens Nest bot
 else:
     raise ValueError("Bot token not found. Please set the DISCORD_BOT_TOKEN environment variable.")
-

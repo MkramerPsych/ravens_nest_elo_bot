@@ -22,11 +22,11 @@ ELO_TO_RANK = {
     'SS': {'min': 1700, 'max': ELO_MAXIMUM},
 }
 
-APPROVED_1S_MAPS = ['Contaminated City A', 'Xylem, the Floating City', 
+APPROVED_1S_MAPS = ['Contaminated City A', 'Xylem, the Floating City',
                     'Jorgen Refueling Base', 'Grid 086 A',
                       'Watchpoint Delta A']
 
-APPROVED_3S_MAPS = ['Contaminated City B', 'Bona Dea Dunes A', 
+APPROVED_3S_MAPS = ['Contaminated City B', 'Bona Dea Dunes A',
                     'Jorgen Refueling Base', 'Old Bertram Spaceport',
                     'Xylem, the Floating City']
 
@@ -47,7 +47,7 @@ def get_rank_from_ELO(ELO: int):
             return f'SS_{ELO}'
 
 def generate_keyword(length = 6):
-    characters = string.ascii_letters + string.digits 
+    characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
 def probability_of_victory(player_ELO: int, opponent_ELO: int):
@@ -77,7 +77,7 @@ def ELO_formula(player_ELO: int, opponent_ELO: int, result: int, ELO_k: int = 30
     opponent_ELO = round(opponent_ELO + ELO_k * ((1 - result) - prob_beta_victory))
     player_ELO = min(max(player_ELO, ELO_min), ELO_max) # ensure ELO is within bounds
     opponent_ELO = min(max(opponent_ELO, ELO_min), ELO_max) # ensure ELO is within bounds
-    return player_ELO, opponent_ELO 
+    return player_ELO, opponent_ELO
 
 
 # core logic
@@ -114,16 +114,16 @@ class Player:
         self.player_teams_ELO = ELO_TO_RANK['C']['min']
         self.player_singles_rank = 'C'
         self.player_teams_rank = 'C'
-        self.player_team = player_team 
+        self.player_team = player_team
         self.singles_wins = 0
         self.singles_losses = 0
         self.teams_wins = 0
         self.teams_losses = 0
-        
+
     def update_player_stats(self, result: int, match_type: str):
         '''
         Update the player's W/L stats and rank after a match
-        
+
         :param result: The result of the match (1 for win, 0 for loss)
         '''
         if result == 1:
@@ -133,7 +133,7 @@ class Player:
                 self.teams_wins += 1
             else: # match_type of '3v3 reg'
                 teams_db.get_team(self.player_team).wins += 1
-    
+
         else:
             if match_type == '1v1':
                 self.singles_losses += 1
@@ -185,10 +185,10 @@ class Player:
 
         # Send the captured table output as a message
         return f"```{table_output}```"
-    
+
     def __repr__(self):
         return self.__str__()
-    
+
 class players_db:
     '''
     Class representing the database of players
@@ -216,7 +216,7 @@ class players_db:
             if player.player_name == player_name:
                 self.players.remove(player)
                 return
-            
+
     def remove_players(self, player_names: list[str]):
         for player_name in player_names:
             self.remove_player(player_name)
@@ -228,14 +228,14 @@ class players_db:
             if player.player_name == player_name:
                 return player
         return None
-           
+
     def get_players(self, player_names: list[str]):
         return [player for player in self.players if player.player_name in player_names]
-    
+
     def get_top_singles_players(self, num_players: int):
         sorted_players = sorted(self.players, key=lambda player: player.player_singles_ELO, reverse=True)
         return sorted_players[:num_players]
-    
+
     def get_top_teams_players(self, num_players: int):
         sorted_players = sorted(self.players, key=lambda player: player.player_teams_ELO, reverse=True)
         return sorted_players[:num_players]
@@ -278,7 +278,7 @@ class players_db:
         table_output = capture.get()
 
         return f"```{table_output}```"
-    
+
     def __len__(self):
         return len(self.players)
 
@@ -360,10 +360,10 @@ class team:
         table_output = capture.get()
 
         return f"```{table_output}```"
-    
+
     def __repr__(self):
         return self.__str__()
-    
+
 class teams_db:
     '''
     Class representing the database of teams
@@ -387,7 +387,7 @@ class teams_db:
             if team.team_name == team_name:
                 return team
         return None
-    
+
     def get_top_teams(self, num_teams: int):
         sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
         return sorted_teams[:num_teams]
@@ -418,7 +418,7 @@ class teams_db:
         table_output = capture.get()
 
         return f"```{table_output}```"
-    
+
     def __len__(self):
         return len(self.teams)
 
@@ -478,14 +478,14 @@ class match:
         else:
             self.match_winner = winner.player_name if self.match_type != '3v3 reg' else winner.team_name
             self.match_loser = loser.player_name if self.match_type != '3v3 reg' else loser.team_name
-        
+
         if self.match_type == '1v1':
             print(f'Match results reported. WIN: {winner.player_name}, LOSS: {loser.player_name}')
             [winner.player_singles_ELO, loser.player_singles_ELO] = ELO_formula(winner.player_singles_ELO, loser.player_singles_ELO, 1)
             winner.update_player_stats(1, '1v1')
             loser.update_player_stats(0, '1v1')
         elif self.match_type == '3v3 flex':
-            print(f'Match results reported. WIN: {', '.join(player.player_name for player in winner)}, LOSS: {', '.join(player.player_name for player in loser)}')
+            print(f'Match results reported. WIN: {winner[0].player_name, winner[1].player_name, winner[2].player_name}, LOSS: {loser[0].player_name, loser[1].player_name, loser[2].player_name}')
             for winner_player, loser_player in zip(winner, loser):
                 winner_player.player_teams_ELO, loser_player.player_teams_ELO = ELO_formula(winner_player.player_teams_ELO, loser_player.player_teams_ELO, 1)
                 winner_player.update_player_stats(1, '3v3 flex')
@@ -519,7 +519,7 @@ class match:
         table_output = capture.get()
 
         return f"```{table_output}```"
-    
+
     def __repr__(self):
         return self.__str__()
 
@@ -540,7 +540,7 @@ class match_db:
             if match.match_id == match_id:
                 match.report_match_results(winner, loser)
                 return
-            
+
     def remove_match(self, match_id: int):
         for match in self.matches:
             if match.match_id == match_id:
@@ -552,7 +552,7 @@ class match_db:
             if match.match_id == match_id:
                 return match
         return None
-    
+
     def __str__(self):
         matches_table = Table(title="Matches Database")
         matches_table.add_column("Match ID", justify="left", style="cyan", no_wrap=True)
@@ -576,7 +576,7 @@ class match_db:
         table_output = capture.get()
 
         return f"```{table_output}```"
-    
+
     def __len__(self):
         return len(self.matches)
 
