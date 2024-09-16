@@ -15,7 +15,4 @@ WORKDIR /app/ravens_nest_elo_bot
 RUN rye pin cpython@3.12.0
 RUN rye sync
 
-ENV DISCORD_BOT_TOKEN="MTI4MzY5MDQ3NDY1MzIyMDg3NQ.Gr1qhj.4n8qOWQu8nxV2zqltJaSwQ_M9mFxlZQgSh_D-Q"
-
-
 CMD ["rye", "run", "ravens_nest_bot"]
