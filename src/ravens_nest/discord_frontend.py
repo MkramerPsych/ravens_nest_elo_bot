@@ -347,7 +347,6 @@ async def view_ones_queue(interaction: discord.Interaction):
     table_output = capture.get()
 
     await interaction.response.send_message(f"{len(ones_queue)} Players are currently in queue for 1v1 matches")
-    #await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
     print("view_ones_queue command used to view 1v1 match queue.")
 
 @tree.command(name="view_threes_reg_queue", description="Views the 3v3 reg match queue.")
@@ -370,7 +369,6 @@ async def view_threes_reg_queue(interaction: discord.Interaction):
     table_output = capture.get()
 
     await interaction.response.send_message(f"{len(threes_reg_queue)} Teams are in queue for 3v3 re matches")
-    # await interaction.response.send_message(f"{len(threes_queue)} Players are in queue for 3v3 matches\n```{table_output}```")
     print("view_threes_reg_queue command used to view 3v3 reg match queue.")
 
 @tree.command(name="view_threes_flex_queue", description="Views the 3v3 flex match queue.")
@@ -387,14 +385,13 @@ async def view_threes_flex_queue(interaction: discord.Interaction):
     table.add_column("Party ID", justify="center")
 
     for player, rank_restriction, party_id in threes_flex_queue.queued_players:
-        table.add_row(player.player_name, str(player.player_teams_ELO), f'{player.player_teams_rank}+' if rank_restriction else "None", party_id if party_id else "None")
+        table.add_row(player.player_name, str(player.player_teams_ELO), f'{player.player_teams_rank}+' if rank_restriction else "None", str(party_id) if party_id else "None")
 
     with console.capture() as capture:
         console.print(table)
     table_output = capture.get()
 
     await interaction.response.send_message(f"{len(threes_flex_queue)} Players are currently in queue for 3v3 flex matches")
-    #await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
     print("view_threes_flex_queue command used to view 3v3 flex match queue.")
 
 # MATCHING SLASH COMMANDS #
