@@ -136,6 +136,7 @@ async def remove_team(interaction: discord.Interaction, admin_passwd: str, team_
         await interaction.response.send_message(f"Team {team_name} is not in the database.")
         print(f"Remove team command used to remove team {team_name}, but team is not in the database.")
 
+# STATS COMMANDS #
 @tree.command(name="playerstats", description="Views the stats of a player.")
 async def playerstats(interaction: discord.Interaction, player_name: str):
     '''
@@ -261,49 +262,46 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
     '''
     player = player_registry.get_player(player_name)
     if player:
-        if match_type == '1v1':
-            try:
-                ones_queue.enqueue_player(player, rank_restriction, party_id=None)
-                await interaction.response.send_message(f"Player {player_name} has been added to the 1v1 match queue.")
-                print(f"solo_queue command used to add player {player_name} to the 1v1 match queue.")
-            except ValueError:
-                await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
-                print(f"solo_queue command used to add player {player_name} to the 1v1 match queue, but player is already in the 3v3 queue.")
-
-        elif match_type == '3v3':
-            try:
-                threes_queue.enqueue_player(player, rank_restriction, party_id=None)
-                await interaction.response.send_message(f"Player {player_name} has been added to the 3v3 match queue.")
-                print(f"solo_queue command used to add player {player_name} to the 3v3 match queue.")
-            except ValueError:
-                await interaction.response.send_message(f"Player {player_name} is already in the 3v3 queue.")
-                print(f"solo_queue command used to add player {player_name} to the 3v3 match queue, but player is already in the 1v1 queue.")
-
+        if match_type == "1v1":
+            ones_queue.enqueue_player(player)
+            await interaction.response.send_message(f"{player_name} added to the 1v1 match queue.")
+        elif match_type == "3v3 flex":
+            threes_flex_queue.enqueue_player(player)
+            await interaction.response.send_message(f"{player_name} added to the 3v3 flex match queue.")
         else:
-            await interaction.response.send_message("match_type must be '1v1' or '3v3'.")
-            print(f"solo_queue command used to add player {player_name} to the match queue, but match_type is not '1v1' or '3v3'.")
-
+            await interaction.response.send_message("Invalid match type. Please use '1v1' or '3v3 flex'.")
     else:
         await interaction.response.send_message(f"Player {player_name} is not in the database.")
-        print(f"solo_queue command used to add player {player_name} to match queue, but player is not in the database.")
 
-#@tree.command(name="dequeue_player", description="Removes a player from any match queue.")
+@tree.command(name="team_queue", description="Adds a team to the 3v3 reg match queue.")
+async def team_queue(interaction: discord.Interaction, team_name: str, match_type: str, rank_restriction: Optional[bool] = False):
+    if match_type == "3v3 reg":
+        team = teams_registry.get_team(team_name)
+        if team:
+            threes_reg_queue.enqueue_team(team)
+            await interaction.response.send_message(f"{team_name} added to the 3v3 reg match queue.")
+        else:
+            await interaction.response.send_message(f"Team {team_name} is not in the database.")
+    else:
+        await interaction.response.send_message("Invalid match type. Please use '3v3 reg'.")
 
-# @tree.command(name="queue_with_party", description="Adds a party of players to a match queue.")
-# async def queue_with_party(interaction: discord.Interaction, match_type: str, party: list[str]):
-#     '''
-#     Adds a party of players to a match queue.
-#     '''
-#     if match_type not in ['1v1', '3v3']:
-#         await interaction.response.send_message("match_type must be '1v1' or '3v3'.")
-#         print(f"queue_with_party command used to add a party of players to a match queue, but match_type is not '1v1' or '3v3'.")
-#         return
-#     else:
-#         pass
+@tree.command(name="party_queue", description="Adds a party to the 3v3 flex match queue.")
+async def party_queue(interaction: discord.Interaction, player_1: str, player_2: Optional[str] = None, player_3: Optional[str] = None, rank_restriction: Optional[bool] = False):
+    '''
+    Adds a party to the 3v3 flex match queue.
+    '''
+    party = [player_registry.get_player(player_1)]
+    if player_2:
+        party.append(player_registry.get_player(player_2))
+    if player_3:
+        party.append(player_registry.get_player(player_3))
+    if party:
+        threes_flex_queue.enqueue_party(party, rank_restriction)
+        await interaction.response.send_message(f"Party {', '.join([player.player_name for player in party])} added to the 3v3 flex match queue.")
+    else:
+        await interaction.response.send_message("Invalid party. Please ensure all players are in the database.")
 
-#tree.command(name="queue_with_team", description="Adds a team to a match queue.")
-
-
+# QUEUE VISUALIZING COMMANDS #
 @tree.command(name="view_ones_queue", description="Views the 1v1 match queue.")
 async def view_ones_queue(interaction: discord.Interaction):
     '''
@@ -314,43 +312,65 @@ async def view_ones_queue(interaction: discord.Interaction):
 
     table.add_column("Player Name", justify="center")
     table.add_column("Player ELO", justify="center")
-    table.add_column("Player Team", justify="center")
     table.add_column("Rank Restriction", justify="center")
-    table.add_column("Party ID", justify="center")
 
-    for player, rank_restriction, party_id in ones_queue.players:
-        table.add_row(player.player_name, str(player.player_ELO), player.player_team or "None", f'{player.player_rank}+' if rank_restriction else "None", party_id or "None")
+    for player, rank_restriction, party_id in ones_queue.queued_players:
+        table.add_row(player.player_name, str(player.player_singles_ELO), f'{player.player_singles_rank}+' if rank_restriction else "None")
 
     with console.capture() as capture:
         console.print(table)
     table_output = capture.get()
 
-    await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
+    await interaction.response.send_message(f"{len(ones_queue)} Players are currently in queue for 1v1 matches")
+    #await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
     print("view_ones_queue command used to view 1v1 match queue.")
 
-@tree.command(name="view_threes_queue", description="Views the 3v3 match queue.")
-async def view_threes_queue(interaction: discord.Interaction):
+@tree.command(name="view_threes_reg_queue", description="Views the 3v3 reg match queue.")
+async def view_threes_reg_queue(interaction: discord.Interaction):
     '''
     Views the 3v3 match queue.
     '''
     console = Console(force_terminal=False)
-    table = Table(title="3v3 Match Queue")
+    table = Table(title="3v3 Reg Match Queue")
 
-    table.add_column("Player Name", justify="center")
-    table.add_column("Player ELO", justify="center")
-    table.add_column("Player Team", justify="center")
+    table.add_column("Team Name", justify="center")
+    table.add_column("Team ELO", justify="center")
     table.add_column("Rank Restriction", justify="center")
-    table.add_column("Party ID", justify="center")
 
-    for player, rank_restriction, party_id in threes_queue.players:
-        table.add_row(player.player_name, str(player.player_ELO), player.player_team or "None", f'{player.player_rank}+' if rank_restriction else "None", party_id or "None")
+    for team, rank_restriction, party_id in threes_reg_queue.queued_teams:
+        table.add_row(team.team_name, str(team.team_ELO), f'{team.team_rank}+' if rank_restriction else "None")
 
     with console.capture() as capture:
         console.print(table)
     table_output = capture.get()
 
-    await interaction.response.send_message(f"{len(threes_queue)} Players are in queue for 3v3 matches\n```{table_output}```")
-    print("view_threes_queue command used to view 3v3 match queue.")
+    await interaction.response.send_message(f"{len(threes_reg_queue)} Players are in queue for 3v3 matches")
+    # await interaction.response.send_message(f"{len(threes_queue)} Players are in queue for 3v3 matches\n```{table_output}```")
+    print("view_threes_reg_queue command used to view 3v3 reg match queue.")
+
+@tree.command(name="view_threes_flex_queue", description="Views the 3v3 flex match queue.")
+async def view_threes_flex_queue(interaction: discord.Interaction):
+    '''
+    Views the 3v3 flex match queue.
+    '''
+    console = Console(force_terminal=False)
+    table = Table(title="3v3 Flex Match Queue")
+
+    table.add_column("Player Name", justify="center")
+    table.add_column("Player ELO", justify="center")
+    table.add_column("Rank Restriction", justify="center")
+    table.add_column("Party ID", justify="center")
+
+    for player, rank_restriction, party_id in ones_queue.queued_players:
+        table.add_row(player.player_name, str(player.player_singles_ELO), f'{player.player_singles_rank}+' if rank_restriction else "None", party_id if party_id else "None")
+
+    with console.capture() as capture:
+        console.print(table)
+    table_output = capture.get()
+
+    await interaction.response.send_message(f"{len(ones_queue)} Players are currently in queue for 3v3 flex matches")
+    #await interaction.response.send_message(f"{len(ones_queue)} Players are in queue for 1v1 matches\n```{table_output}```")
+    print("view_threes_flex_queue command used to view 3v3 flex match queue.")
 
 # MATCHING SLASH COMMANDS #
 @tree.command(name="single_match_setup", description="Creates a match between two players.")
@@ -411,8 +431,8 @@ async def cancel_match(interaction: discord.Interaction, admin_passwd: str, matc
         await interaction.response.send_message(f"Match {match_id} is not in the database.")
         print(f"cancel_match command used to cancel match {match_id}, but match is not in the database.")
 
-@tree.command(name="match_results", description="Records the results of a match.")
-async def match_results(interaction: discord.Interaction, match_id: int, win: str, lose: str):
+@tree.command(name="report_match_results", description="Records the results of a match.")
+async def report_match_results(interaction: discord.Interaction, match_id: int, win: str, lose: str):
     '''
     Records the results of a match.
     '''
@@ -481,7 +501,6 @@ async def help(interaction: discord.Interaction):
     '''
     await interaction.response.send_message(help_message)
     print("Help command used to display all available commands.")
-
 
 # Start the bot #
 bot_token = os.environ.get('DISCORD_BOT_TOKEN')
