@@ -386,7 +386,7 @@ async def view_threes_flex_queue(interaction: discord.Interaction):
     table.add_column("Rank Restriction", justify="center")
     table.add_column("Party ID", justify="center")
 
-    for player, rank_restriction, party_id in ones_queue.queued_players:
+    for player, rank_restriction, party_id in threes_flex_queue.queued_players:
         table.add_row(player.player_name, str(player.player_singles_ELO), f'{player.player_singles_rank}+' if rank_restriction else "None", party_id if party_id else "None")
 
     with console.capture() as capture:
