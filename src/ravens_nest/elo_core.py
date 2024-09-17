@@ -206,7 +206,7 @@ class players_db:
 
     def add_players(self, player_objs: list[Player]):
         for player in player_objs:
-            if player not in self.players:
+            if player.player_name not in [p.player_name for p in self.players]:
                 self.players.append(player)
             else:
                 print(f'Player {player.player_name} is already in the database')
@@ -239,6 +239,30 @@ class players_db:
     def get_top_teams_players(self, num_players: int):
         sorted_players = sorted(self.players, key=lambda player: player.player_teams_ELO, reverse=True)
         return sorted_players[:num_players]
+
+    def dump_players_db(self, file_path: str):
+        with open(file_path, 'w') as file:
+            for player in self.players:
+                file.write(f"{player.player_name},{player.player_singles_ELO},{player.player_teams_ELO},{player.player_singles_rank},{player.player_teams_rank},{player.player_team},{player.singles_wins},{player.singles_losses},{player.teams_wins},{player.teams_losses},{player.singles_wl_ratio},{player.teams_wl_ratio}\n")
+
+    def load_players_db(self, file_path: str):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                data = line.strip().split(',')
+                new_player = Player(data[0])
+                new_player.player_singles_ELO = int(data[1])
+                new_player.player_teams_ELO = int(data[2])
+                new_player.player_singles_rank = data[3]
+                new_player.player_teams_rank = data[4]
+                new_player.player_team = data[5]
+                new_player.singles_wins = int(data[6])
+                new_player.singles_losses = int(data[7])
+                new_player.teams_wins = int(data[8])
+                new_player.teams_losses = int(data[9])
+                new_player.singles_wl_ratio = float(data[10])
+                new_player.teams_wl_ratio = float(data[11])
+                self.add_player(new_player)
 
     def __str__(self):
         sorted_players = sorted(self.players, key=lambda player: player.player_singles_ELO, reverse=True)
@@ -369,9 +393,11 @@ class teams_db:
     Class representing the database of teams
     '''
     teams: list[team]
+    player_registry: players_db
 
-    def __init__(self):
+    def __init__(self, player_registry: players_db):
         self.teams = []
+        self.player_registry = player_registry
 
     def add_team(self, team_obj: team):
         self.teams.append(team_obj)
@@ -391,6 +417,37 @@ class teams_db:
     def get_top_teams(self, num_teams: int):
         sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
         return sorted_teams[:num_teams]
+
+    def dump_teams_db(self, file_path: str):
+        with open(file_path, 'w') as file:
+            for team in self.teams:
+                players_str = ','.join(player.player_name for player in team.roster)
+                file.write(f"{team.team_name},{players_str},{team.team_ELO},{team.team_rank},{team.wins},{team.losses},{team.wl_ratio}\n")
+
+    def load_teams_db(self, file_path: str):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                data = line.strip().split(',')
+                team_name = data[0]
+                player1 = data[1]
+                player2 = data[2]
+                player3 = data[3]
+                team_ELO = int(data[4])
+                team_rank = data[5]
+                wins = int(data[6])
+                losses = int(data[7])
+                wl_ratio = float(data[8])
+
+                players = [player1, player2, player3]
+                player_objs = [self.player_registry.get_player(player_name) for player_name in players]
+                new_team = team(team_name, player_objs)
+                new_team.team_ELO = team_ELO
+                new_team.team_rank = team_rank
+                new_team.wins = wins
+                new_team.losses = losses
+                new_team.wl_ratio = wl_ratio
+                self.add_team(new_team)
 
     def __str__(self):
         sorted_teams = sorted(self.teams, key=lambda team: team.team_ELO, reverse=True)
@@ -552,6 +609,36 @@ class match_db:
             if match.match_id == match_id:
                 return match
         return None
+
+    def dump_matches_db(self, file_path: str):
+        with open(file_path, 'w') as file:
+            for match in self.matches:
+                if match.match_type == '3v3 flex':
+                    winner = ', '.join(match.match_winner) if match.match_winner else "N/A"
+                    loser = ', '.join(match.match_loser) if match.match_loser else "N/A"
+                else:
+                    winner = match.match_winner if match.match_winner else "N/A"
+                    loser = match.match_loser if match.match_loser else "N/A"
+                file.write(f"{match.match_id},{match.match_type},{match.match_map},{winner},{loser}\n")
+
+    def load_matches_db(self, file_path: str):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                data = line.strip().split(',')
+                match_id = int(data[0])
+                match_type = data[1]
+                match_map = data[2]
+                match_winner = str([data[3],data[4],data[5]])
+                match_loser = str([data[6],data[7],data[8]])
+
+                new_match = match(match_type)
+                new_match.match_id = match_id
+                new_match.match_map = match_map
+                new_match.match_winner = match_winner
+                new_match.match_loser = match_loser
+                new_match.match_status = 'completed'
+                self.add_match(new_match)
 
     def __str__(self):
         matches_table = Table(title="Matches Database")

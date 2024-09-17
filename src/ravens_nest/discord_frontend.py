@@ -4,6 +4,7 @@ Designed by Ahasuerus for Armored Scrims Server
 '''
 import os
 import discord
+import asyncio
 from discord import app_commands
 from ravens_nest.elo_core import *
 from ravens_nest.player_queue import *
@@ -26,9 +27,33 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 # establish all databases and queues #
-player_registry = players_db() # initialize the database
-teams_registry = teams_db() # initialize the database
-matches_db = match_db() # initialize the match
+players_path = 'players.db'
+teams_path = 'teams.db'
+matches_path = 'matches.db'
+
+if os.path.exists(players_path):
+    player_registry = players_db()
+    player_registry.load_players_db(players_path)
+    print(f'Players_db loaded from file {players_path}')
+else:
+    player_registry = players_db()
+    print('initalized new player_registry')
+
+if os.path.exists(teams_path):
+    teams_registry = teams_db()
+    teams_registry.load_teams_db(teams_path)
+    print(f'Teams_db loaded from file {teams_path}')
+else:
+    teams_registry = teams_db()
+    print('initalized new teams_registry')
+
+if os.path.exists(matches_path):
+    matches_db = match_db()
+    matches_db.load_matches_db(matches_path)
+    print(f'Matches_db loaded from file {matches_path}')
+else:
+    matches_db = match_db()
+    print('initalized new matches_db')
 
 ones_queue = MatchQueue('1v1', player_registry, teams_registry)
 threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry)
@@ -508,5 +533,15 @@ bot_token = os.environ.get('DISCORD_BOT_TOKEN')
 if bot_token:
     print("Bot token found, initializing bot.")
     client.run(bot_token) # activate the Ravens Nest bot
+
+    async def dump_databases():
+        while True:
+            await asyncio.sleep(3600)  # 1 hour interval
+            player_registry.dump_players_db(players_path)
+            teams_registry.dump_teams_db(teams_path)
+            matches_db.dump_matches_db(matches_path)
+            print("Databases dumped.")
+
+    client.loop.create_task(dump_databases())
 else:
     raise ValueError("Bot token not found. Please set the DISCORD_BOT_TOKEN environment variable.")

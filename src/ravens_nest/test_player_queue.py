@@ -4,10 +4,10 @@ from ravens_nest.player_queue import *
 
 # set up databases #
 player_registry = players_db() # initialize the database for individual players
-teams_registry = teams_db() # initialize the database for registered teams
+teams_registry = teams_db(player_registry) # initialize the database for registered teams
 matches_db = match_db() # initialize the match logging database
 
-# set up queues 
+# set up queues
 ones_queue = MatchQueue('1v1', player_registry, teams_registry)
 threes_reg_queue = MatchQueue('3v3 reg', player_registry, teams_registry)
 threes_flex_queue = MatchQueue('3v3 flex', player_registry, teams_registry)
@@ -59,7 +59,8 @@ threes_flex_queue.enqueue_player(ramenrook)
 threes_flex_queue.enqueue_player(risa)
 threes_flex_queue.enqueue_player(sabbath)
 
-# have a simulated 3v3 flex match between teams 
+# have a simulated 3v3 flex match between teams
 test_3s_flex_match = threes_flex_queue.get_valid_match_from_queue()
 test_3s_flex_match.setup_match_parameters()
 test_3s_flex_match.report_match_results(test_3s_flex_match.team_alpha, test_3s_flex_match.team_beta)
+matches_db.add_match(test_3s_flex_match)

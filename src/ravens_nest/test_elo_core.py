@@ -6,8 +6,8 @@ from ravens_nest.elo_core import *
 
 # generate databases #
 player_registry = players_db() # initialize the database for individual players
-teams_registry = teams_db() # initialize the database for registered teams
-random_teams_registry = teams_db() # initialize the database for non-registered teams
+teams_registry = teams_db(player_registry) # initialize the database for registered teams
+random_teams_registry = teams_db(player_registry) # initialize the database for non-registered teams
 matches_db = match_db() # initialize the match logging database
 
 
