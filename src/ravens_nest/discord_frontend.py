@@ -40,11 +40,11 @@ else:
     print('initalized new player_registry')
 
 if os.path.exists(teams_path):
-    teams_registry = teams_db()
+    teams_registry = teams_db(player_registry)
     teams_registry.load_teams_db(teams_path)
     print(f'Teams_db loaded from file {teams_path}')
 else:
-    teams_registry = teams_db()
+    teams_registry = teams_db(player_registry)
     print('initalized new teams_registry')
 
 if os.path.exists(matches_path):
