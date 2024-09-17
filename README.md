@@ -24,7 +24,7 @@ To get started with Ravens Nest, follow these steps:
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/ravens_nest.git
+    git clone https://github.com/yourusername/ravens_nest_elo_bot.git
     ```
 
 ## Usage
