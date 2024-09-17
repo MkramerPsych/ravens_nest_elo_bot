@@ -288,11 +288,17 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
     player = player_registry.get_player(player_name)
     if player:
         if match_type == "1v1":
-            ones_queue.enqueue_player(player)
-            await interaction.response.send_message(f"{player_name} added to the 1v1 match queue.")
+            try:
+                ones_queue.enqueue_player(player)
+                await interaction.response.send_message(f"{player_name} added to the 1v1 match queue.")
+            except ValueError:
+                await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
         elif match_type == "3v3 flex":
-            threes_flex_queue.enqueue_player(player)
-            await interaction.response.send_message(f"{player_name} added to the 3v3 flex match queue.")
+            try:
+                threes_flex_queue.enqueue_player(player)
+                await interaction.response.send_message(f"{player_name} added to the 3v3 flex match queue.")
+            except ValueError:
+                await interaction.response.send_message(f"Player {player_name} is already in the 3v3 flex queue.")
         else:
             await interaction.response.send_message("Invalid match type. Please use '1v1' or '3v3 flex'.")
     else:
@@ -303,8 +309,11 @@ async def team_queue(interaction: discord.Interaction, team_name: str, match_typ
     if match_type == "3v3 reg":
         team = teams_registry.get_team(team_name)
         if team:
-            threes_reg_queue.enqueue_team(team)
-            await interaction.response.send_message(f"{team_name} added to the 3v3 reg match queue.")
+            try:
+                threes_reg_queue.enqueue_team(team)
+                await interaction.response.send_message(f"{team_name} added to the 3v3 reg match queue.")
+            except ValueError:
+                await interaction.response.send_message(f"Team {team_name} is already in the 3v3 reg queue.")
         else:
             await interaction.response.send_message(f"Team {team_name} is not in the database.")
     else:
@@ -321,8 +330,11 @@ async def party_queue(interaction: discord.Interaction, player_1: str, player_2:
     if player_3:
         party.append(player_registry.get_player(player_3))
     if party:
-        threes_flex_queue.enqueue_party(party, rank_restriction)
-        await interaction.response.send_message(f"Party {', '.join([player.player_name for player in party])} added to the 3v3 flex match queue.")
+        try:
+            threes_flex_queue.enqueue_party(party, rank_restriction)
+            await interaction.response.send_message(f"Party {', '.join([player.player_name for player in party])} added to the 3v3 flex match queue.")
+        except ValueError:
+            await interaction.response.send_message("Party is already in the 3v3 flex queue.")
     else:
         await interaction.response.send_message("Invalid party. Please ensure all players are in the database.")
 
