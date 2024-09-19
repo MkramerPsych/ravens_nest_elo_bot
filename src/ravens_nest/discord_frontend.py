@@ -296,7 +296,9 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
                 if match:
                     match.setup_match_parameters()
                     matches_db.add_match(match)
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 2 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
+                    alpha_mention = f"<@{match.player_alpha.player_id}>"
+                    beta_mention = f"<@{match.player_beta.player_id}>"
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 2 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Players: {alpha_mention} vs {beta_mention}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
         elif match_type == "3v3 flex":
@@ -308,7 +310,9 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
                 if match:
                     match.setup_match_parameters()
                     matches_db.add_match(match)
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
+                    alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
+                    beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 3v3 flex queue.")
         else:
@@ -329,7 +333,9 @@ async def team_queue(interaction: discord.Interaction, team_name: str, match_typ
                 if match:
                     match.setup_match_parameters()
                     matches_db.add_match(match)
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
+                    alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
+                    beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
             except ValueError:
                 await interaction.response.send_message(f"Team {team_name} is already in the 3v3 reg queue.")
         else:
@@ -356,7 +362,9 @@ async def party_queue(interaction: discord.Interaction, player_1: str, player_2:
             if match:
                 match.setup_match_parameters()
                 matches_db.add_match(match)
-                await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
+                alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
+                beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
+                await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
         except ValueError:
             await interaction.response.send_message("Party is already in the 3v3 flex queue.")
     else:
@@ -431,8 +439,8 @@ async def view_threes_flex_queue(interaction: discord.Interaction):
     print("view_threes_flex_queue command used to view 3v3 flex match queue.")
 
 # MATCHING SLASH COMMANDS #
-@tree.command(name="single_match_setup", description="Creates a match between two players.")
-async def single_match_setup(interaction: discord.Interaction, player1: str, player2: str):
+@tree.command(name="private_singles_match_setup", description="Creates a private match between two players.")
+async def private_singles_match_setup(interaction: discord.Interaction, player1: str, player2: str):
     '''
     Creates a match between two players.
     '''
@@ -451,8 +459,8 @@ async def single_match_setup(interaction: discord.Interaction, player1: str, pla
         await interaction.response.send_message(f"Players {player1} and {player2} are not in the database.")
         print(f"single_match_setup command used to create a match between {player1} and {player2}, but one or both players are not in the database.")
 
-@tree.command(name="team_match_setup", description="Creates a match between two teams.")
-async def team_match_setup(interaction: discord.Interaction, team1: str, team2: str):
+@tree.command(name="private_team_match_setup", description="Creates a private 3v3 reg match between two teams.")
+async def private_team_match_setup(interaction: discord.Interaction, team1: str, team2: str):
     '''
     Creates a match between two teams.
     '''
@@ -490,7 +498,7 @@ async def cancel_match(interaction: discord.Interaction, admin_passwd: str, matc
         print(f"cancel_match command used to cancel match {match_id}, but match is not in the database.")
 
 @tree.command(name="report_match_results", description="Records the results of a match.")
-async def report_match_results(interaction: discord.Interaction, match_id: int, win: str, lose: str):
+async def report_match_results(interaction: discord.Interaction, match_id: int, win: str|list[str], lose: str|list[str]):
     '''
     Records the results of a match.
     '''
@@ -512,8 +520,14 @@ async def report_match_results(interaction: discord.Interaction, match_id: int, 
                 loser = teams_registry.get_team(lose)
                 match.report_match_results(winner, loser)
                 await interaction.response.send_message(f"Match {match_id} results recorded. {winner.team_name} wins.")
-            else: # '3v3 flex'
-                pass
+            else:  # '3v3 flex'
+                winner = [player_registry.get_player(player_name) for player_name in win]
+                loser = [player_registry.get_player(player_name) for player_name in lose]
+                if all(winner) and all(loser):
+                    match.report_match_results(winner, loser)
+                    await interaction.response.send_message(f"Match {match_id} results recorded. Winning team: {', '.join([player.player_name for player in winner])}")
+                else:
+                    await interaction.response.send_message("One or more players in the winning or losing team are not in the database.")
             print(f"match_results command used to record results of match {match_id}.")
 
 @tree.command(name="match_summary", description="Views the status of a match.")
@@ -534,29 +548,43 @@ async def help(interaction: discord.Interaction):
     '''
     Displays all commands available.
     '''
-    help_message = '''
+    help_message = """
     **Ravens Nest Bot Commands**
     ***commands marked with (A) are admin-only commands***
-    `/onboard_player [player_name] [player_team]` - Onboards a player to the database.
-    `/onboard_team [team_name] [player1] [player2] [player3]` - Onboards a team to the database.
-    `/remove_player (A) [player_name]` - Removes a player from the database.
-    `/remove_team (A) [team_name]` - Removes a team from the database.
-    `/playerstats [player_name]` - Views the stats of a player.
-    `/teamstats [team_name]` - Views the stats of a team.
-    `/solo_leaderboard` - Views the leaderboard for 1v1 matches.
-    `/reg_teams_leaderboard` - Views the leaderboard for 3v3 regulation matches.
-    `/flex_teams_leaderboard` - Views the leaderboard for 3v3 flex matches.
-    `/single_match_setup [player1] [player2]` - Creates a match between two players.
-    `/team_match_setup [team1] [team2]` - Creates a match between two teams.
-    `/match_results [match_id] [win] [lose]` - Records the results of a match.
-    `/match_summary [match_id]` - Views the status of a match.
-    `/solo_queue [player_name] [match_type] [rank_restriction]` - Adds a player to a match queue.
-    `/view_ones_queue` - Views the 1v1 match queue.
-    `/view_reg_queue` - Views the 3v3 reg match queue.
-    `/view_flex_queue` - Views the 3v3 flex match queue.
-    `/cancel_match (A) [match_id]` - Cancels a match.
-    `/help` - Displays all commands available.
-    '''
+
+    **Onboarding Commands**
+    - `/onboard_player <player_name> [player_team]` - Onboards a player to the database.
+    - `/onboard_team <team_name> <player1> <player2> <player3>` - Onboards a team to the database.
+
+    **Removal Commands**
+    - `/remove_player <admin_passwd> <player_name>` - (A) Removes a player from the database.
+    - `/remove_team <admin_passwd> <team_name>` - (A) Removes a team from the database.
+
+    **Stats Commands**
+    - `/playerstats <player_name>` - Views the stats of a player.
+    - `/teamstats <team_name>` - Views the stats of a team.
+    - `/solo_leaderboard` - Views the leaderboard for 1v1 matches.
+    - `/reg_teams_leaderboard` - Views the leaderboard for 3v3 regular matches.
+    - `/flex_teams_leaderboard` - Views the leaderboard for 3v3 flex matches.
+
+    **Queue Commands**
+    - `/solo_queue <player_name> <match_type> [rank_restriction]` - Adds a player to a match queue.
+    - `/team_queue <team_name> <match_type> [rank_restriction]` - Adds a team to the 3v3 regular match queue.
+    - `/party_queue <player_1> [player_2] [player_3] [rank_restriction]` - Adds a party to the 3v3 flex match queue.
+    - `/view_ones_queue` - Views the 1v1 match queue.
+    - `/view_threes_reg_queue` - Views the 3v3 regular match queue.
+    - `/view_threes_flex_queue` - Views the 3v3 flex match queue.
+
+    **Match Commands**
+    - `/private_singles_match_setup <player1> <player2>` - Creates a private match between two players.
+    - `/private_team_match_setup <team1> <team2>` - Creates a private 3v3 regular match between two teams.
+    - `/cancel_match <admin_passwd> <match_id>` - (A) Cancels a match.
+    - `/report_match_results <match_id> <win> <lose>` - Records the results of a match.
+    - `/match_summary <match_id>` - Views the status of a match.
+
+    **Help Command**
+    - `/help` - Displays all commands available.
+    """
     await interaction.response.send_message(help_message)
     print("Help command used to display all available commands.")
 
