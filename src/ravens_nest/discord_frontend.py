@@ -553,6 +553,23 @@ async def match_summary(interaction: discord.Interaction, match_id: int):
         await interaction.response.send_message(f"Match {match_id} is not in the database.")
     print(f"match_summary command used to view match {match_id}.")
 
+# DUMP COMMAND #
+@tree.command(name="dump_databases", description="Dumps all databases to their respective files.")
+async def dump_databases(interaction: discord.Interaction, admin_passwd: str):
+    '''
+    Dumps all databases to their respective files.
+    '''
+    if admin_passwd != os.getenv('ADMIN_PASSWD'):
+        await interaction.response.send_message("Invalid admin password.")
+        print("dump_databases command used with invalid admin password.")
+        return
+
+    player_registry.dump_players_db(players_path)
+    teams_registry.dump_teams_db(teams_path)
+    matches_db.dump_matches_db(matches_path)
+    await interaction.response.send_message("All databases have been dumped to their respective files.")
+    print("dump_databases command used to dump all databases.")
+
 # HELP COMMAND #
 @tree.command(name="help", description="Displays all commands available.")
 async def help(interaction: discord.Interaction):
@@ -593,6 +610,9 @@ async def help(interaction: discord.Interaction):
     - `/report_match_results <match_id> <win> <lose>` - Records the results of a match.
     - `/match_summary <match_id>` - Views the status of a match.
 
+    **Dump Command**
+        - `/dump <admin_passwd>` - (A) Dumps the current state of the database.
+    
     **Help Command**
     - `/help` - Displays all commands available.
     """
