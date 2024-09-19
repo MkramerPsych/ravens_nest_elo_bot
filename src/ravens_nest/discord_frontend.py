@@ -498,7 +498,7 @@ async def cancel_match(interaction: discord.Interaction, admin_passwd: str, matc
         print(f"cancel_match command used to cancel match {match_id}, but match is not in the database.")
 
 @tree.command(name="report_match_results", description="Records the results of a match.")
-async def report_match_results(interaction: discord.Interaction, match_id: int, win: str|list[str], lose: str|list[str]):
+async def report_match_results(interaction: discord.Interaction, match_id: int, win: str, lose: str, win_2: Optional[str] = None, win_3: Optional[str] = None, lose_2: Optional[str] = None, lose_3: Optional[str] = None):
     '''
     Records the results of a match.
     '''
@@ -521,14 +521,25 @@ async def report_match_results(interaction: discord.Interaction, match_id: int, 
                 match.report_match_results(winner, loser)
                 await interaction.response.send_message(f"Match {match_id} results recorded. {winner.team_name} wins.")
             else:  # '3v3 flex'
-                winner = [player_registry.get_player(player_name) for player_name in win]
-                loser = [player_registry.get_player(player_name) for player_name in lose]
+                winner = [player_registry.get_player(win)]
+                loser = [player_registry.get_player(lose)]
+                if win_2:
+                    winner.append(player_registry.get_player(win_2))
+                if win_3:
+                    winner.append(player_registry.get_player(win_3))
+                if lose_2:
+                    loser.append(player_registry.get_player(lose_2))
+                if lose_3:
+                    loser.append(player_registry.get_player(lose_3))
                 if all(winner) and all(loser):
                     match.report_match_results(winner, loser)
                     await interaction.response.send_message(f"Match {match_id} results recorded. Winning team: {', '.join([player.player_name for player in winner])}")
                 else:
                     await interaction.response.send_message("One or more players in the winning or losing team are not in the database.")
             print(f"match_results command used to record results of match {match_id}.")
+    else:
+        await interaction.response.send_message(f"Match {match_id} is not in the database.")
+        print(f"match_results command used to record results of match {match_id}, but match is not in the database.")
 
 @tree.command(name="match_summary", description="Views the status of a match.")
 async def match_summary(interaction: discord.Interaction, match_id: int):
