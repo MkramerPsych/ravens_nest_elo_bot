@@ -291,12 +291,24 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
             try:
                 ones_queue.enqueue_player(player)
                 await interaction.response.send_message(f"{player_name} added to the 1v1 match queue.")
+                # Attempt to create a match
+                match = ones_queue.get_valid_match_from_queue()
+                if match:
+                    match.setup_match_parameters()
+                    matches_db.add_match(match)
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 2 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
         elif match_type == "3v3 flex":
             try:
                 threes_flex_queue.enqueue_player(player)
                 await interaction.response.send_message(f"{player_name} added to the 3v3 flex match queue.")
+                # Attempt to create a match
+                match = threes_flex_queue.get_valid_match_from_queue()
+                if match:
+                    match.setup_match_parameters()
+                    matches_db.add_match(match)
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 3v3 flex queue.")
         else:
@@ -312,6 +324,12 @@ async def team_queue(interaction: discord.Interaction, team_name: str, match_typ
             try:
                 threes_reg_queue.enqueue_team(team)
                 await interaction.response.send_message(f"{team_name} added to the 3v3 reg match queue.")
+                # Attempt to create a match
+                match = threes_reg_queue.get_valid_match_from_queue()
+                if match:
+                    match.setup_match_parameters()
+                    matches_db.add_match(match)
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
             except ValueError:
                 await interaction.response.send_message(f"Team {team_name} is already in the 3v3 reg queue.")
         else:
@@ -329,10 +347,16 @@ async def party_queue(interaction: discord.Interaction, player_1: str, player_2:
         party.append(player_registry.get_player(player_2))
     if player_3:
         party.append(player_registry.get_player(player_3))
-    if party:
+    if all(party):
         try:
             threes_flex_queue.enqueue_party(party, rank_restriction)
             await interaction.response.send_message(f"Party {', '.join([player.player_name for player in party])} added to the 3v3 flex match queue.")
+            # Attempt to create a match
+            match = threes_flex_queue.get_valid_match_from_queue()
+            if match:
+                match.setup_match_parameters()
+                matches_db.add_match(match)
+                await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}')
         except ValueError:
             await interaction.response.send_message("Party is already in the 3v3 flex queue.")
     else:
