@@ -310,8 +310,8 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
                 if match:
                     match.setup_match_parameters()
                     matches_db.add_match(match)
-                    alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
-                    beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
+                    alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha])
+                    beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta])
                     await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 3v3 flex queue.")
@@ -362,8 +362,8 @@ async def party_queue(interaction: discord.Interaction, player_1: str, player_2:
             if match:
                 match.setup_match_parameters()
                 matches_db.add_match(match)
-                alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
-                beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
+                alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha])
+                beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta])
                 await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
         except ValueError:
             await interaction.response.send_message("Party is already in the 3v3 flex queue.")
