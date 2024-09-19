@@ -578,15 +578,10 @@ async def help(interaction: discord.Interaction):
     '''
     help_message = """
     **Ravens Nest Bot Commands**
-    ***commands marked with (A) are admin-only commands***
-
+ 
     **Onboarding Commands**
     - `/onboard_player <player_name> [player_team]` - Onboards a player to the database.
     - `/onboard_team <team_name> <player1> <player2> <player3>` - Onboards a team to the database.
-
-    **Removal Commands**
-    - `/remove_player <admin_passwd> <player_name>` - (A) Removes a player from the database.
-    - `/remove_team <admin_passwd> <team_name>` - (A) Removes a team from the database.
 
     **Stats Commands**
     - `/playerstats <player_name>` - Views the stats of a player.
@@ -606,12 +601,8 @@ async def help(interaction: discord.Interaction):
     **Match Commands**
     - `/private_singles_match_setup <player1> <player2>` - Creates a private match between two players.
     - `/private_team_match_setup <team1> <team2>` - Creates a private 3v3 regular match between two teams.
-    - `/cancel_match <admin_passwd> <match_id>` - (A) Cancels a match.
     - `/report_match_results <match_id> <win> <lose>` - Records the results of a match.
     - `/match_summary <match_id>` - Views the status of a match.
-
-    **Dump Command**
-        - `/dump <admin_passwd>` - (A) Dumps the current state of the database.
     
     **Help Command**
     - `/help` - Displays all commands available.
