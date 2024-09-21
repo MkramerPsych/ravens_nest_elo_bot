@@ -5,6 +5,7 @@ Designed by Ahasuerus for Armored Scrims Server
 import os
 import discord
 import asyncio
+import random
 from discord import app_commands
 from ravens_nest.elo_core import *
 from ravens_nest.player_queue import *
@@ -16,7 +17,7 @@ from rich.console import Console
 # DISCORD BOT SETUP #
 
 # Create a client instance with the necessary intents
-version_num = '1.0.0'
+version_num = '1.0.2'
 
 intents = discord.Intents.default()
 intents.presences = True
@@ -298,7 +299,8 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
                     matches_db.add_match(match)
                     alpha_mention = f"<@{match.player_alpha.player_id}>"
                     beta_mention = f"<@{match.player_beta.player_id}>"
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 2 person lobby, rotation locked, with a 2 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Players: {alpha_mention} vs {beta_mention}')
+                    host = random.choice([alpha_mention, beta_mention])
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Host: {host}. Remember to create a 2 person lobby, rotation locked, with a 2 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Players: {alpha_mention} vs {beta_mention}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 1v1 queue.")
         elif match_type == "3v3 flex":
@@ -312,7 +314,8 @@ async def solo_queue(interaction: discord.Interaction, player_name: str, match_t
                     matches_db.add_match(match)
                     alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha])
                     beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta])
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
+                    host = random.choice([player.player_id for player in match.team_alpha + match.team_beta])
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Host: {host}. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
             except ValueError:
                 await interaction.response.send_message(f"Player {player_name} is already in the 3v3 flex queue.")
         else:
@@ -335,7 +338,8 @@ async def team_queue(interaction: discord.Interaction, team_name: str, match_typ
                     matches_db.add_match(match)
                     alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha.roster])
                     beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta.roster])
-                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
+                    host = random.choice([player.player_id for player in match.team_alpha.roster + match.team_beta.roster])
+                    await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Host: {host}. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
             except ValueError:
                 await interaction.response.send_message(f"Team {team_name} is already in the 3v3 reg queue.")
         else:
@@ -364,7 +368,8 @@ async def party_queue(interaction: discord.Interaction, player_1: str, player_2:
                 matches_db.add_match(match)
                 alpha_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_alpha])
                 beta_mentions = ", ".join([f"<@{player.player_id}>" for player in match.team_beta])
-                await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
+                host = random.choice([player.player_id for player in match.team_alpha + match.team_beta])
+                await interaction.followup.send(f'Match setup for match `{match.match_id}` complete. Host: {host}. Remember to create a 9 person lobby, rotation locked, with a 5 minute match timer. Use Map: {match.match_map}, Use Keyword: {match.keyword}. Teams: {alpha_mentions} vs {beta_mentions}')
         except ValueError:
             await interaction.response.send_message("Party is already in the 3v3 flex queue.")
     else:
@@ -412,7 +417,7 @@ async def view_threes_reg_queue(interaction: discord.Interaction):
         console.print(table)
     table_output = capture.get()
 
-    await interaction.response.send_message(f"{len(threes_reg_queue)} Teams are in queue for 3v3 re matches")
+    await interaction.response.send_message(f"{len(threes_reg_queue)} Teams are in queue for 3v3 reG matches")
     print("view_threes_reg_queue command used to view 3v3 reg match queue.")
 
 @tree.command(name="view_threes_flex_queue", description="Views the 3v3 flex match queue.")
