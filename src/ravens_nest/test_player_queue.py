@@ -4,8 +4,11 @@ from ravens_nest.player_queue import *
 
 # set up databases #
 player_registry = players_db() # initialize the database for individual players
+player_registry.load_players_db('players.db')
 teams_registry = teams_db(player_registry) # initialize the database for registered teams
+teams_registry.load_teams_db('teams.db')
 matches_db = match_db() # initialize the match logging database
+matches_db.load_matches_db('matches.db')
 
 # set up queues
 ones_queue = MatchQueue('1v1', player_registry, teams_registry)
@@ -51,13 +54,13 @@ threes_reg_queue.enqueue_team(koolish)
 threes_reg_queue.enqueue_team(rns)
 
 # test threes flex queue logic
-threes_flex_queue.enqueue_player(hooli)
-threes_flex_queue.enqueue_player(kraydle)
-threes_flex_queue.enqueue_player(fish)
-threes_flex_queue.enqueue_party([Prism, Hai_Yena, Cicada])
-threes_flex_queue.enqueue_player(ramenrook)
-threes_flex_queue.enqueue_player(risa)
-threes_flex_queue.enqueue_player(sabbath)
+threes_flex_queue.enqueue_player(player_registry.get_player('Hooli'))
+threes_flex_queue.enqueue_player(player_registry.get_player('Kraydle'))
+threes_flex_queue.enqueue_player(player_registry.get_player('Fish'))
+threes_flex_queue.enqueue_party([player_registry.get_player('Prism'), player_registry.get_player('Hai_Yena'), player_registry.get_player('Cicada')])
+threes_flex_queue.enqueue_player(player_registry.get_player('RamenRook'))
+threes_flex_queue.enqueue_player(player_registry.get_player('Risa'))
+threes_flex_queue.enqueue_player(player_registry.get_player('Sabbath'))
 
 # have a simulated 3v3 flex match between teams
 test_3s_flex_match = threes_flex_queue.get_valid_match_from_queue()

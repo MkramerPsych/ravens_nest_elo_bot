@@ -41,7 +41,7 @@ def get_rank_from_ELO(ELO: int):
     returns: The rank of the player
     '''
     for rank, values in ELO_TO_RANK.items():
-        if values['min'] <= ELO < values['max']:
+        if values['min'] <= ELO <= values['max']:
             return rank
         elif ELO >= ELO_TO_RANK['SS']['min']:
             return f'SS_{ELO}'
